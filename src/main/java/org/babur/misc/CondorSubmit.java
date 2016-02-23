@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Set;
 
 /**
@@ -51,6 +52,7 @@ public class CondorSubmit
 	public static void submitComplete(String dir) throws IOException
 	{
 		boolean hasInitialScores = false;
+		boolean hasCompletedAlready = false;
 		boolean hasParametersFile = false;
 		int randCnt = 0;
 
@@ -59,6 +61,10 @@ public class CondorSubmit
 			if (file.getName().equals("ranked-groups.txt"))
 			{
 				hasInitialScores = true;
+				Scanner sc = new Scanner(file);
+				String line = sc.nextLine();
+				sc.close();
+				hasCompletedAlready = line.split("\t").length > 2;
 			}
 			else if (file.getName().equals("parameters.txt"))
 			{
@@ -73,7 +79,7 @@ public class CondorSubmit
 			}
 		}
 
-		if (!hasParametersFile) return;
+		if (!hasParametersFile || hasCompletedAlready) return;
 
 		System.out.print("Submitting " + dir + " ... ");
 		String h = System.currentTimeMillis() + "";
@@ -134,21 +140,21 @@ public class CondorSubmit
 			Runtime.getRuntime().exec("condor_submit_dag " + D);
 		}
 
-		pause(1000);
+		pause(100);
 		System.out.println("ok");
 	}
 
 	public static void submitSimpleRun(String dir) throws IOException
 	{
 		System.out.print("Submitting " + dir + " ... ");
-		String file = "script-" + System.currentTimeMillis() + ".sub";
+		String file = SUB_DIR + "/script-" + System.currentTimeMillis() + ".sub";
 		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		writer.write(SCRIPT
 			.replace("<DIR>", dir)
 			.replace("<CNT>", "1"));
 		writer.close();
 		Runtime.getRuntime().exec("condor_submit " + file);
-		pause(1000);
+		pause(100);
 		System.out.println("ok");
 	}
 
@@ -205,6 +211,9 @@ public class CondorSubmit
 		"\n" +
 		"#Condor log file\n" +
 		"log=$(dir)log.log\n" +
+		"\n" +
+		"#Grab 5GB memory\n" +
+		"request_memory=5120\n" +
 		"\n" +
 		"#Queue the job\n" +
 		"queue <CNT>\n";

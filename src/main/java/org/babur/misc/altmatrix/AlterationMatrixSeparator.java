@@ -13,18 +13,29 @@ public class AlterationMatrixSeparator
 {
 	public static void main(String[] args) throws IOException
 	{
-//		printHistogram("C:/Users/babur/Documents/mutex/TCGA/BRCA/whole/DataMatrix.txt", 20);
+//		printHistogram("/home/babur/Documents/mutex/TCGA/LAML/outliers-excluded/DataMatrix.txt", 100);
 
-//		String base = "C:/Users/babur/Documents/mutex/TCGA/BRCA";
+		String base = "/home/babur/Documents/mutex/TCGA/PanCan/mutations-only";
 //		separate(base, "whole", new String[]{"0-50", "0-100", "0-200", "0-400"});
 
-		String dir = "C:/Users/babur/Documents/mutex/TCGA/";
-		for (File file : new File(dir).listFiles())
-		{
-			if (!file.getName().endsWith("ACC")) continue;
-			if (file.getName().endsWith("keep")) continue;
-			separateNonOutliers(file.getPath(), "whole");
-		}
+//		String dir = "/home/babur/Documents/mutex/TCGA/";
+//		for (File file : new File(dir).listFiles())
+//		{
+//			System.out.println("file.getName() = " + file.getName());
+//			if (file.getName().endsWith("keep")) continue;
+////			separateNonOutliers(file.getPath(), "whole");
+//			separateMutations(file.getPath(), "outliers-excluded");
+//		}
+
+//		for (File dir : new File("/home/babur/Documents/mutex/TCGA").listFiles())
+//		{
+//			if (!dir.isDirectory() || dir.getName().equals("ACC")) continue;
+//
+//			copySubdirs(new File("/home/babur/Documents/mutex/TCGA/ACC/whole"),
+//				new File(dir.getPath() + "/whole"));
+//		}
+
+		separate(base, "whole", 10);
 	}
 
 	/**
@@ -55,14 +66,7 @@ public class AlterationMatrixSeparator
 		Map<String, Integer> cnt = readSampleAlterationCounts(inFile);
 
 		List<String> samples = new ArrayList<>(cnt.keySet());
-		Collections.sort(samples, new Comparator<String>()
-		{
-			@Override
-			public int compare(String o1, String o2)
-			{
-				return cnt.get(o1).compareTo(cnt.get(o2));
-			}
-		});
+		Collections.sort(samples, (o1, o2) -> cnt.get(o1).compareTo(cnt.get(o2)));
 
 		for (int i = 1; i <= pieces; i++)
 		{
@@ -102,6 +106,32 @@ public class AlterationMatrixSeparator
 		if (!new File(chunkDir).exists()) new File(chunkDir).mkdir();
 
 		writeSubset(inFile, chunkDir + "/DataMatrix.txt", subset);
+	}
+
+	public static void separateMutations(String baseDir, String useDir) throws IOException
+	{
+		String inFile = baseDir + "/" + useDir + "/DataMatrix.txt";
+
+		String newDir = baseDir + "/mutations-only";
+		if (!new File(newDir).exists()) new File(newDir).mkdir();
+
+		Scanner sc = new Scanner(new File(inFile));
+		BufferedWriter writer = new BufferedWriter(new FileWriter(newDir + "/DataMatrix.txt"));
+		writer.write(sc.nextLine());
+
+		while (sc.hasNextLine())
+		{
+			String line = sc.nextLine();
+			line = line.replaceAll("\t2", "\t0").replaceAll("\t3", "\t0").
+				        replaceAll("\t4", "\t1").replaceAll("\t5", "\t1");
+
+			if (line.contains("\t1")) writer.write("\n" + line);
+		}
+
+		sc.close();
+		writer.close();
+
+		copySubdirs(new File(baseDir + "/" + useDir), new File(newDir));
 	}
 
 	/**

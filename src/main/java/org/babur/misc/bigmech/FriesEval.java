@@ -40,6 +40,6 @@ public class FriesEval
 
 	public static void main(String[] args) throws FileNotFoundException
 	{
-		compareMutexResults("C://Users//babur//Documents//DARPA//BigMech//LUAD", 0.1);
+		compareMutexResults("/home/babur/Documents/mutex/TCGA/LUAD/outliers-excluded", 0.1);
 	}
 }
