@@ -13,7 +13,7 @@ public class MutexReader
 
 	public static void main(String[] args) throws FileNotFoundException
 	{
-		String dir = "C:/Users/babur/Documents/mutex/CCLE";
+		String dir = "/home/babur/Documents/mutex/CCLE";
 		List<List<String>> result = readMutexResultsRecursive(dir, 0.01, false, null);
 		clearRedundantGroups(result);
 		for (List<String> list : result)
