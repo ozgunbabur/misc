@@ -37,6 +37,29 @@ public class MutexReader
 		return result;
 	}
 
+	public static Map<String, Double> readBestGeneScores(String dir)
+		throws FileNotFoundException
+	{
+		Map<String, Double> scores = new HashMap<>();
+		Scanner sc = new Scanner(new File(dir + "/ranked-groups.txt"));
+
+		String[] header = sc.nextLine().split("\t");
+		boolean hasQval = header.length >= 3;
+
+		while (sc.hasNextLine())
+		{
+			String[] token = sc.nextLine().split("\t");
+			double score = Double.parseDouble(token[0]);
+			List<String> genes = Arrays.asList(token).subList(hasQval ? 2 : 1, token.length);
+			for (String gene : genes)
+			{
+				if (!scores.containsKey(gene) || scores.get(gene) > score) scores.put(gene, score);
+			}
+		}
+
+		return scores;
+	}
+
 	public static List<List<String>> readMutexResults(String dir, double thr, boolean useFDR)
 		throws FileNotFoundException
 	{

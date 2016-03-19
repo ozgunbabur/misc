@@ -22,18 +22,18 @@ public class OncoprintSVGGenerator
 //					"......................M....................................................................AAAAAAA";
 //		write(s, "temp.svg");
 
-		String dir = "/home/babur/Documents/mutex/TCGA/PanCan/mutations-only/?/no-network";
-//		generate((
-//			"SPTBN4\n" +
-//				"FRS2\n" +
-//				"EFNB3\n" +
-//				"TP53\n" +
-//				"MDM2\n" +
-//				"CTDSP2").split("\n"), dir + "DataMatrix.txt", dir + "oncoprint/story3.svg", false);
-		for (int i = 1; i < 10; i++)
-		{
-			generateAllOncoprintsFromGroupRankingFile(dir.replace("?", "" + i), 0.01, true);
-		}
+		String dir = "/home/babur/Documents/mutex/TCGA/BRCA/outliers-excluded/fries290K-leidos-PC2v7/";
+		generate((
+			"HUS1B, PTEN, PIK3CA").split(", "), dir + "../DataMatrix.txt", dir + "HUS1B.svg",
+			false);
+
+
+
+//		String dir = "/home/babur/Documents/mutex/TCGA/PanCan/mutations-only/?/no-network";
+//		for (int i = 1; i < 10; i++)
+//		{
+//			generateAllOncoprintsFromGroupRankingFile(dir.replace("?", "" + i), 0.01, true);
+//		}
 	}
 
 	public static void generateAllOncoprintsFromGroupRankingFile(String dir, double thr, boolean includeUnaltered)

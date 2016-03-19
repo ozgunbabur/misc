@@ -15,7 +15,7 @@ public class MutVersusCNADistribution
 {
 	public static void main(String[] args) throws FileNotFoundException
 	{
-		displayRecursive("/home/babur/Documents/mutex/TCGA");
+		displayRecursive("/home/babur/Documents/mutex/TCGA/GBMLGG");
 	}
 
 	public static void displayRecursive(String dir) throws FileNotFoundException
@@ -62,10 +62,10 @@ public class MutVersusCNADistribution
 
 		sc.close();
 
-		Histogram2D h = new Histogram2D(20);
+		Histogram2D h = new Histogram2D(0.2);
 		for (String sample : mutCnt.keySet())
 		{
-			h.count(mutCnt.get(sample), cnaCnt.get(sample));
+			h.count(Math.log(mutCnt.get(sample) + 1), Math.log(cnaCnt.get(sample) + 1));
 		}
 		h.plot();
 	}

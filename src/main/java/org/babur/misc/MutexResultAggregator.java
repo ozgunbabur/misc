@@ -1,5 +1,6 @@
 package org.babur.misc;
 
+import org.cbio.causality.idmapping.CancerGeneCensus;
 import org.cbio.causality.util.DiscretePvalHisto;
 import org.cbio.causality.util.FishersCombinedProbability;
 import org.cbio.causality.util.Summary;
@@ -24,11 +25,13 @@ public class MutexResultAggregator
 		Map<String, Double> scores = calcAggregateScores(results, genes);
 		List<String> geneList = new ArrayList<>(genes);
 		Collections.sort(geneList, ((o1, o2) -> scores.get(o1).compareTo(scores.get(o2))));
-		BufferedWriter writer = new BufferedWriter(new FileWriter("pancan-mut-scores-pc.txt"));
+
+		BufferedWriter writer = new BufferedWriter(new FileWriter("pancan-mut-scores.txt"));
 		writer.write("Score\tGene");
 		for (String gene : geneList)
 		{
-			writer.write("\n" + gene + "\t" + scores.get(gene));
+			writer.write("\n" + gene + "\t" + scores.get(gene) + "\t" + (CancerGeneCensus.isCancerGene(gene) ? "" :
+				"X"));
 		}
 		writer.close();
 		printHistogram(scores);
@@ -49,7 +52,7 @@ public class MutexResultAggregator
 		Set<String> dirs = new HashSet<>();
 		for (int i = 1; i <= 10; i++)
 		{
-			dirs.add("/home/babur/Documents/mutex/TCGA/PanCan/mutations-only/" + i + "/PC2v7");
+			dirs.add("/home/babur/Documents/mutex/TCGA/PanCan/mutations-only/" + i + "/no-network");
 		}
 		return dirs;
 	}

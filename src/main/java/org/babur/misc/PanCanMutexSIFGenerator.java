@@ -1,25 +1,41 @@
 package org.babur.misc;
 
+import org.cbio.causality.util.Summary;
+
+import java.awt.*;
 import java.io.*;
 import java.util.*;
+import java.util.List;
 
 /**
  * Created by babur on 2/23/16.
  */
 public class PanCanMutexSIFGenerator
 {
-	static Set<String> avoid = new HashSet<>(Arrays.asList("mutation-only", "whole", "PanCan", "UVM-keep",
-		"no-network"));
+	static Set<String> avoid = new HashSet<>(Arrays.asList(
+		"PanCan",
+		"UVM-keep",
+		"mutations-only",
+		"whole",
+//		"outliers-excluded",
+//		"no-network",
+		"PC2v7",
+		"fries1K",
+		"fries290K",
+		"fries290K-leidos-PC2v7",
+		"fries290K-PC2v7",
+		"fries1K-PC2v7"
+	));
 
 	public static void main(String[] args) throws IOException
 	{
-		prepare("/home/babur/Documents/mutex/TCGA", "temp.sif");
+		prepare("/home/babur/Documents/mutex/TCGA", "/home/babur/Documents/DARPA/BigMech/no-network.sif");
 	}
 
 	private static void prepare(String dir, String outSIFFile) throws IOException
 	{
 		double thr = 0.01;
-		int freqThr = 2;
+		int freqThr = 1;
 		Map<String, Integer> cnt = new HashMap<>();
 		Map<String, Map<String, Integer>> linkMap = new HashMap<>();
 
@@ -42,9 +58,14 @@ public class PanCanMutexSIFGenerator
 			if (cnt.get(gene) >= freqThr) frequent.add(gene);
 		}
 
+		int maxNodeFreq = Summary.max(cnt.values());
+
+
+
 		Set<String> edges = new HashSet<>();
 		BufferedWriter writer = new BufferedWriter(new FileWriter(outSIFFile));
 
+		int maxEdgeFreq = 0;
 		for (String g1 : frequent)
 		{
 			for (String g2 : frequent)
@@ -57,6 +78,8 @@ public class PanCanMutexSIFGenerator
 						String edge = g1 + "\tinteracts-with\t" + g2;
 						writer.write(edge + "\n");
 						edges.add(edge.replaceAll("\t", " "));
+
+						if (c > maxEdgeFreq) maxEdgeFreq = c;
 					}
 				}
 			}
@@ -64,16 +87,28 @@ public class PanCanMutexSIFGenerator
 
 		writer.close();
 
+		ValToColor nodeColor = new ValToColor(new double[]{0, Math.log(maxNodeFreq)}, new Color[]{Color.LIGHT_GRAY, Color.BLACK});
+		ValToColor edgeColor = new ValToColor(new double[]{0, Math.log(maxEdgeFreq)}, new Color[]{Color.LIGHT_GRAY, Color.BLACK});
+
 		writer = new BufferedWriter(new FileWriter(outSIFFile.substring(0, outSIFFile.lastIndexOf(".")) + ".format"));
 
-		writer.write("node\tall-nodes\tborderwidth\t2\n");
+		writer.write("node\tall-nodes\tborderwidth\t3\n");
 		writer.write("node\tall-nodes\tcolor\t255 255 255\n");
+
+		for (String gene : frequent)
+		{
+			writer.write("node\t" + gene + "\tbordercolor\t" +
+				nodeColor.getColorInString(Math.log(cnt.get(gene))) +"\n");
+			writer.write("node\t" + gene + "\ttooltip\t" + cnt.get(gene) + "\n");
+		}
 
 		for (String edge : edges)
 		{
 			String g1 = edge.split(" ")[0];
 			String g2 = edge.split(" ")[2];
 			writer.write("edge\t" + edge + "\twidth\t" + (linkMap.get(g1).get(g2) >= freqThr ? "2" : 1) + "\n");
+			writer.write("edge\t" + edge + "\tcolor\t" +
+				edgeColor.getColorInString(Math.log(linkMap.get(g1).get(g2))) + "\n");
 		}
 
 		writer.close();
