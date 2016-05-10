@@ -1,11 +1,11 @@
-package org.babur.misc.rppa.parser;
+package org.panda.misc.rppa.parser;
 
-import org.babur.misc.ValToColor;
 import org.cbio.causality.network.PhosphoSitePlus;
 import org.cbio.causality.rppa.RPPAData;
 import org.cbio.causality.rppa.RPPAFileReader;
 import org.cbio.causality.rppa.RPPANetworkMapper;
-import org.cbio.causality.util.CollectionUtil;
+import org.panda.utility.CollectionUtil;
+import org.panda.utility.ValToColor;
 
 import java.awt.*;
 import java.io.*;

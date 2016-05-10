@@ -1,4 +1,4 @@
-package org.babur.misc;
+package org.panda.misc;
 
 import java.io.BufferedWriter;
 import java.io.File;

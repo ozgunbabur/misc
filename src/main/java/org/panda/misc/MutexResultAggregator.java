@@ -1,9 +1,8 @@
-package org.babur.misc;
+package org.panda.misc;
 
-import org.cbio.causality.idmapping.CancerGeneCensus;
-import org.cbio.causality.util.DiscretePvalHisto;
-import org.cbio.causality.util.FishersCombinedProbability;
-import org.cbio.causality.util.Summary;
+import org.panda.resource.CancerGeneCensus;
+import org.panda.utility.statistics.Summary;
+import org.panda.utility.statistics.UniformityChecker;
 
 import java.io.*;
 import java.util.*;
@@ -30,11 +29,12 @@ public class MutexResultAggregator
 		writer.write("Score\tGene");
 		for (String gene : geneList)
 		{
-			writer.write("\n" + gene + "\t" + scores.get(gene) + "\t" + (CancerGeneCensus.isCancerGene(gene) ? "" :
-				"X"));
+			writer.write("\n" + gene + "\t" + scores.get(gene) + "\t" +
+				(CancerGeneCensus.get().isCancerGene(gene) ? "" : "X"));
 		}
 		writer.close();
-		printHistogram(scores);
+
+		UniformityChecker.plot(new ArrayList<>(scores.values()));
 	}
 
 	private static Set<String> getGenes(Set<Map<String, Double>> results)
@@ -121,11 +121,5 @@ public class MutexResultAggregator
 		}
 		sc.close();
 		return map;
-	}
-
-	private static void printHistogram(Map<String, Double> scores)
-	{
-		DiscretePvalHisto h = new DiscretePvalHisto(new ArrayList<>(scores.values()), 0.05);
-		h.plot();
 	}
 }

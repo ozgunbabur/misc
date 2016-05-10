@@ -1,8 +1,8 @@
-package org.babur.misc.bigmech;
+package org.panda.misc.bigmech;
 
-import org.babur.misc.MutexReader;
-import org.cbio.causality.util.CollectionUtil;
-import org.cbio.causality.util.Histogram;
+import org.panda.misc.MutexReader_old;
+import org.panda.utility.CollectionUtil;
+import org.panda.utility.statistics.Histogram;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,8 +36,8 @@ public class FriesEval
 			if (consider != null && !consider.contains(dirs[i].getName())) continue;
 
 			nameList.add(dirs[i].getName());
-			setsList.    add(MutexReader.convertToSet(MutexReader.readMutexResults(dirs[i].getPath(), fdrThr, false)));
-			setsListWide.add(MutexReader.convertToSet(MutexReader.readMutexResults(dirs[i].getPath(), fdrThr + 0.01,
+			setsList.    add(MutexReader_old.convertToSet(MutexReader_old.readMutexResults(dirs[i].getPath(), fdrThr, false)));
+			setsListWide.add(MutexReader_old.convertToSet(MutexReader_old.readMutexResults(dirs[i].getPath(), fdrThr + 0.01,
 				false)));
 		}
 
@@ -111,8 +111,8 @@ public class FriesEval
 
 	private static void printScoreChangeHistogram(String dir1, String dir2) throws FileNotFoundException
 	{
-		Map<String, Double> scores1 = MutexReader.readBestGeneScores(dir1);
-		Map<String, Double> scores2 = MutexReader.readBestGeneScores(dir2);
+		Map<String, Double> scores1 = MutexReader_old.readBestGeneScores(dir1);
+		Map<String, Double> scores2 = MutexReader_old.readBestGeneScores(dir2);
 
 		Set<String> genes = new HashSet<>(scores1.keySet());
 		genes.retainAll(scores2.keySet());

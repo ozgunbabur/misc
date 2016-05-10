@@ -1,6 +1,6 @@
-package org.babur.misc;
+package org.panda.misc;
 
-import org.cbio.causality.util.Progress;
+import org.panda.utility.Progress;
 
 import java.io.File;
 import java.io.FileNotFoundException;

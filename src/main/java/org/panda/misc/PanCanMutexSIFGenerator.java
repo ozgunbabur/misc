@@ -1,6 +1,7 @@
-package org.babur.misc;
+package org.panda.misc;
 
-import org.cbio.causality.util.Summary;
+import org.panda.utility.ValToColor;
+import org.panda.utility.statistics.Summary;
 
 import java.awt.*;
 import java.io.*;
@@ -129,7 +130,7 @@ public class PanCanMutexSIFGenerator
 
 	private static void updateGeneCounts(List<List<String>> results, Map<String, Integer> cnt)
 	{
-		Set<String> genes = MutexReader.convertToSet(results);
+		Set<String> genes = MutexReader_old.convertToSet(results);
 		for (String gene : genes)
 		{
 			if (!cnt.containsKey(gene)) cnt.put(gene, 1);
@@ -173,6 +174,6 @@ public class PanCanMutexSIFGenerator
 		File f = new File(dir + "/ranked-groups.txt");
 		if (!f.exists()) return Collections.emptyList();
 
-		return MutexReader.readMutexResults(dir, thr, false);
+		return MutexReader_old.readMutexResults(dir, thr, false);
 	}
 }

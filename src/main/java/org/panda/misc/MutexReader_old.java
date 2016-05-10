@@ -1,4 +1,4 @@
-package org.babur.misc;
+package org.panda.misc;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -8,7 +8,7 @@ import java.util.*;
  * For reading the genes in the ranked-groups.txt result file of a Mutex run.
  * Created by babur on 2/2/2016.
  */
-public class MutexReader
+public class MutexReader_old
 {
 
 	public static void main(String[] args) throws FileNotFoundException
@@ -16,10 +16,7 @@ public class MutexReader
 		String dir = "/home/babur/Documents/mutex/CCLE";
 		List<List<String>> result = readMutexResultsRecursive(dir, 0.01, false, null);
 		clearRedundantGroups(result);
-		for (List<String> list : result)
-		{
-			System.out.println(list);
-		}
+		result.forEach(System.out::println);
 	}
 
 	public static List<List<String>> readMutexResultsRecursive(String dir, double thr,
@@ -130,10 +127,7 @@ public class MutexReader
 
 		for (List<String> list1 : new ArrayList<>(lists))
 		{
-			for (List<String> list2 : new ArrayList<>(lists))
-			{
-				if (list2.containsAll(list1) && list2.size() > list1.size()) lists.remove(list1);
-			}
+			new ArrayList<>(lists).stream().filter(list2 -> list2.containsAll(list1) && list2.size() > list1.size()).forEach(list2 -> lists.remove(list1));
 		}
 	}
 

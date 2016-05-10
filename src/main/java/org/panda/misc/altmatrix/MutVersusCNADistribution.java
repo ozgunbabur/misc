@@ -1,6 +1,6 @@
-package org.babur.misc.altmatrix;
+package org.panda.misc.altmatrix;
 
-import org.cbio.causality.util.Histogram2D;
+import org.panda.utility.statistics.Histogram2D;
 
 import java.io.File;
 import java.io.FileNotFoundException;

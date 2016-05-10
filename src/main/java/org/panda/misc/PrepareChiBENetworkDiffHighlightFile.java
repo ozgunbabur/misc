@@ -1,7 +1,7 @@
-package org.babur.misc;
+package org.panda.misc;
 
 import org.biopax.paxtools.pattern.miner.SIFEnum;
-import org.cbio.causality.analysis.Graph;
+import org.panda.utility.graph.Graph;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;

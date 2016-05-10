@@ -1,4 +1,4 @@
-package org.babur.misc.altmatrix;
+package org.panda.misc.altmatrix;
 
 import java.io.*;
 import java.util.*;

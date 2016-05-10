@@ -1,4 +1,4 @@
-package org.babur.misc;
+package org.panda.misc;
 
 
 import java.io.*;
@@ -40,7 +40,7 @@ public class OncoprintSVGGenerator
 		throws IOException
 	{
 		new File(dir + "/oncoprint").mkdirs();
-		for (List<String> genes : MutexReader.readMutexResults(dir, thr, false))
+		for (List<String> genes : MutexReader_old.readMutexResults(dir, thr, false))
 		{
 			generate(genes.toArray(new String[genes.size()]), dir + "/../DataMatrix.txt", dir + "/oncoprint/" +
 				genes.toString() + ".svg", includeUnaltered);

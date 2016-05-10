@@ -1,6 +1,6 @@
-package org.babur.misc.altmatrix;
+package org.panda.misc.altmatrix;
 
-import org.cbio.causality.data.tcgafile.MutationReader;
+import org.panda.resource.tcga.MutationReader;
 
 import java.io.*;
 import java.util.*;

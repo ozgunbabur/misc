@@ -1,7 +1,7 @@
-package org.babur.misc.altmatrix;
+package org.panda.misc.altmatrix;
 
 import org.apache.commons.io.FileUtils;
-import org.cbio.causality.util.Histogram;
+import org.panda.utility.statistics.Histogram;
 
 import java.io.*;
 import java.util.*;
