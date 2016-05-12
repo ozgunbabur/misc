@@ -1,2 +1,2 @@
 # misc
-Collection of several basic code
+Collection of several experimental code
