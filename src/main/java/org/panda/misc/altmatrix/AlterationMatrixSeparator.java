@@ -35,7 +35,7 @@ public class AlterationMatrixSeparator
 //				new File(dir.getPath() + "/whole"));
 //		}
 
-		separate(base, "whole", 10);
+		separate(base, base + "/whole", 10);
 	}
 
 	/**
@@ -55,14 +55,14 @@ public class AlterationMatrixSeparator
 			String chunkDir = baseDir + "/" + chunk;
 			if (!new File(chunkDir).exists()) new File(chunkDir).mkdir();
 
-			writeSubset(baseDir + "/" + wholeDir + "/DataMatrix.txt", chunkDir + "/DataMatrix.txt",
+			writeSubset(wholeDir + "/DataMatrix.txt", chunkDir + "/DataMatrix.txt",
 				min, max);
 		}
 	}
 
 	public static void separate(String baseDir, String wholeDir, int pieces) throws IOException
 	{
-		String inFile = baseDir + "/" + wholeDir + "/DataMatrix.txt";
+		String inFile = wholeDir + "/DataMatrix.txt";
 		Map<String, Integer> cnt = readSampleAlterationCounts(inFile);
 
 		List<String> samples = new ArrayList<>(cnt.keySet());

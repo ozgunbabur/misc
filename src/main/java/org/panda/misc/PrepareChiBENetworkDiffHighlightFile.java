@@ -29,6 +29,10 @@ public class PrepareChiBENetworkDiffHighlightFile
 		prepare(g1, g2, base + "../../../Projects/chibe/fries-diff-edge-only.highlight");
 	}
 
+	/**
+	 * Prepares a .highlight file to use in ChiBE sif views. This file highlights the components that exists in the
+	 * second graph but not the first graph.
+	 */
 	public static void prepare(Graph g1, Graph g2, String outFile) throws IOException
 	{
 		BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));

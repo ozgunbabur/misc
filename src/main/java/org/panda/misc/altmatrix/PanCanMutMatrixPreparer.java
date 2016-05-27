@@ -6,6 +6,8 @@ import java.io.*;
 import java.util.*;
 
 /**
+ * Using individual TCGA datasets, prepares a merged alteration matrix from mutations.
+ *
  * Created by babur on 2/22/16.
  */
 public class PanCanMutMatrixPreparer
@@ -25,7 +27,7 @@ public class PanCanMutMatrixPreparer
 		write(muts, "/home/babur/Documents/mutex/TCGA/PanCan/mutations-only/whole/DataMatrix.txt");
 	}
 
-	private static Map<String, Map<String, Boolean>> readMuts(List<String> files) throws FileNotFoundException
+	private static Map<String, Map<String, Boolean>> readMuts(List<String> files) throws IOException
 	{
 		Map<String, Map<String, Boolean>> muts = new HashMap<>();
 		for (String file : files)
@@ -41,7 +43,7 @@ public class PanCanMutMatrixPreparer
 		return muts;
 	}
 
-	private static Map<String, Map<String, Boolean>> readOne(String file) throws FileNotFoundException
+	private static Map<String, Map<String, Boolean>> readOne(String file) throws IOException
 	{
 		Map<String, Map<String, Boolean>> map = new HashMap<>();
 		MutationReader reader = new MutationReader(file);

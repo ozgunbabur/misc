@@ -1,9 +1,15 @@
-package org.panda.misc.rppa.parser;
+package org.panda.misc.analyses;
 
-import org.cbio.causality.network.PhosphoSitePlus;
-import org.cbio.causality.rppa.RPPAData;
-import org.cbio.causality.rppa.RPPAFileReader;
-import org.cbio.causality.rppa.RPPANetworkMapper;
+import org.panda.causalpath.analyzer.CausalitySearcher;
+import org.panda.causalpath.analyzer.OneDataChangeDetector;
+import org.panda.causalpath.analyzer.ThresholdDetector;
+import org.panda.causalpath.data.ExperimentData;
+import org.panda.causalpath.data.ProteinData;
+import org.panda.causalpath.network.GraphWriter;
+import org.panda.causalpath.run.RPPAFrontFace;
+import org.panda.resource.PhosphoSitePlus;
+import org.panda.resource.tcga.RPPAData;
+import org.panda.causalpath.resource.RPPAFileReader;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.ValToColor;
 
@@ -35,31 +41,19 @@ public class GeorgeThomas
 		int valInd1 = ACHN;
 		int valInd2 = ACHN;
 
-		Set<RPPAData> datas = new HashSet<>();
-		datas.addAll(convertRPPA(base + "PP_data_Table1_Thomas_Q177800_pY1000_1PC_FDR_121913.csv", valInd1));
-		datas.addAll(convertRPPA(base + "PP_data_Table2_Thomas_Q177800_Basophillic_1PC_FDR_121913.csv", valInd2));
-		datas.addAll(readRPPAData(valInd1 == ACHN));
+		Set<RPPAData> rppas = new HashSet<>();
+		rppas.addAll(convertRPPA(base + "PP_data_Table1_Thomas_Q177800_pY1000_1PC_FDR_121913.csv", valInd1));
+		rppas.addAll(convertRPPA(base + "PP_data_Table2_Thomas_Q177800_Basophillic_1PC_FDR_121913.csv", valInd2));
+		rppas.addAll(readRPPAData(valInd1 == ACHN));
+
+		// Fill-in missing effect from PhosphoSitePlus
+		PhosphoSitePlus.get().fillInMissingEffect(rppas, 10);
 
 		RPPAData mtor = new RPPAData("MTOR-inactivated", null, Arrays.asList("MTOR"), null);
 		mtor.makeActivityNode(false);
-		datas.add(mtor);
+		rppas.add(mtor);
 
-		RPPAData.ChangeAdapter chDet = new RPPAData.ChangeAdapter(){};
-
-		double threshold = 1.5;
-		chDet.setThreshold(threshold);
-		for (RPPAData data : datas) if (!data.isActivity()) data.setChDet(chDet);
-
-//		prepareChiBEFormatFile(datas, base + "achn.format");
-//		if (true) return;
-
-		// Fill-in missing effect from PhosphoSitePlus
-		PhosphoSitePlus.fillInMissingEffect(datas, 10);
-
-		RPPANetworkMapper.writeGraph(datas, threshold, base + "ACHN-compatible.sif",
-			RPPANetworkMapper.GraphType.COMPATIBLE, null);
-
-//		writeRPPA(data, outFile);
+		RPPAFrontFace.generateRPPAGraphs(rppas, 1.5, "compatible", true, true, base + "ACHN-compatible-temp");
 	}
 
 	private static void compareSets(Set<RPPAData>... sets)
@@ -89,45 +83,6 @@ public class GeorgeThomas
 		return set;
 	}
 
-	private static void writeRPPA(Set<RPPAData> set, String outFile)
-	{
-		List<RPPAData> list = new ArrayList<>(set);
-		Collections.sort(list, (o1, o2) -> o1.id.compareTo(o2.id));
-		RPPAData.write(list, outFile);
-	}
-
-	private static void prepareChiBEFormatFile(Set<RPPAData> datas, String filename) throws IOException
-	{
-		Map<String, Double> map = new HashMap<>();
-		for (RPPAData data : datas)
-		{
-			if (data.isActivity()) continue;
-
-			for (String gene : data.genes)
-			{
-				double v = Math.abs(data.getChangeValue());
-				if (!map.containsKey(gene) || map.get(gene) < v) map.put(gene, v);
-			}
-		}
-
-		ValToColor v2c = new ValToColor(new double[]{1, 5}, new Color[]{Color.WHITE, Color.GREEN});
-
-		BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
-		writer.write("node\tall-nodes\tcolor\t255 255 255");
-		writer.write("\nnode\tall-nodes\tbordercolor\t0 0 0");
-
-		for (String gene : map.keySet())
-		{
-			double v = map.get(gene);
-			Color c = v2c.getColor(v);
-			writer.write("\nnode\t" + gene + "\tcolor\t" + c.getRed() + " " + c.getGreen() + " " + c.getBlue());
-			if (v >= 1.5) writer.write("\nnode\t" + gene + "\tborderwidth\t2");
-			writer.write("\nnode\t" + gene + "\ttooltip\t" + v);
-		}
-		
-		writer.close();
-	}
-	
 	private static RPPAData readLine(String line, int valIndex)
 	{
 		String[] token = line.split("\t");
@@ -175,13 +130,12 @@ public class GeorgeThomas
 
 		if (geneList.isEmpty()) return null;
 
-		double[][] vals = new double[0][];
+		double[] vals = new double[0];
 
 		if (valIndex >= 0)
 		{
 			double v = Double.parseDouble(token[valIndex]);
-			vals = new double[1][1];
-			vals[0][0] = v;
+			vals = new double[]{v};
 		}
 		else if (valIndex == TABLE1_CONTROLS)
 		{
@@ -192,8 +146,7 @@ public class GeorgeThomas
 
 			double foldCh = Math.max(vA, vS) / Math.min(vA, vS);
 			if (vS < vA) foldCh *= -1;
-			vals = new double[1][1];
-			vals[0][0] = foldCh;
+			vals = new double[]{foldCh};
 		}
 		else if (valIndex == TABLE2_CONTROLS)
 		{
@@ -204,8 +157,7 @@ public class GeorgeThomas
 
 			double foldCh = Math.max(vA, vS) / Math.min(vA, vS);
 			if (vS < vA) foldCh *= -1;
-			vals = new double[1][1];
-			vals[0][0] = foldCh;
+			vals = new double[]{foldCh};
 		}
 
 		return new RPPAData(generateID(geneList, siteMap), vals, geneList, siteMap);
@@ -284,7 +236,7 @@ public class GeorgeThomas
 			double fold = Math.max(v0, v1) / Math.min(v0, v1);
 			if (v1 < v0) fold = -fold;
 
-			data.vals = new double[][]{{fold}};
+			data.vals = new double[]{fold};
 			set.add(data);
 		}
 

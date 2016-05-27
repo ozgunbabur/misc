@@ -6,6 +6,7 @@ import org.panda.utility.statistics.Summary;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -14,12 +15,12 @@ import java.util.*;
  */
 public class OncogeneAndTSDetector
 {
-	public static void main(String[] args) throws FileNotFoundException
+	public static void main(String[] args) throws IOException
 	{
 		printDistribution(load());
 	}
 
-	public static MutationReader load() throws FileNotFoundException
+	public static MutationReader load() throws IOException
 	{
 		MutationReader reader = null;
 		for (File dir : new File("/home/babur/Documents/TCGA").listFiles())

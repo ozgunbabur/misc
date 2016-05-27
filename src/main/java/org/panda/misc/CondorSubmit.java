@@ -15,8 +15,8 @@ import java.util.Set;
  */
 public class CondorSubmit
 {
-	final static boolean COMPUTE_FDR = true;
-	static final String base = "/home/users/babur/mutex-data/CCLE";
+	final static boolean COMPUTE_FDR = false;
+	static final String base = "/home/exacloud/lustre1/users/babur/mutex-data/CCLE";
 	static final Set<String> avoid = new HashSet<>(Arrays.asList(""));
 
 	static final String SUB_DIR = "/home/users/babur/cluster-files";
@@ -107,6 +107,10 @@ public class CondorSubmit
 				.replace("<CNT>", "" + (100 - randCnt)));
 			writer.close();
 		}
+		else if (randCnt > 100)
+		{
+			System.out.println("Opps! random files greater than 100. randCnt = " + randCnt);
+		}
 
 		String C = SUB_DIR + "/script-" + h + (i++) + ".sub";
 		writer = new BufferedWriter(new FileWriter(C));
@@ -150,7 +154,7 @@ public class CondorSubmit
 		String file = SUB_DIR + "/script-" + System.currentTimeMillis() + ".sub";
 		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		writer.write(SCRIPT
-			.replace("<DIR>", dir)
+			.replace("<DIR>", dir + " no-random-run")
 			.replace("<CNT>", "1"));
 		writer.close();
 		Runtime.getRuntime().exec("condor_submit " + file);
@@ -212,9 +216,12 @@ public class CondorSubmit
 		"#Condor log file\n" +
 		"log=$(dir)log.log\n" +
 		"\n" +
-		"#Grab 5GB memory\n" +
-		"request_memory=5120\n" +
+		"#Grab 10GB memory\n" +
+		"request_memory=10240\n" +
 		"\n" +
-		"#Queue the job\n" +
+		"#Set some estimated run time\n" +
+		"+MaxExecutionTime=86400\n" +
+		"\n" +
+		"#How many instance you like?\n" +
 		"queue <CNT>\n";
 }

@@ -13,12 +13,17 @@ import org.biopax.paxtools.pattern.miner.SIFInteraction;
 import org.biopax.paxtools.pattern.miner.SIFSearcher;
 import org.biopax.paxtools.pattern.miner.SIFType;
 import org.biopax.paxtools.pattern.util.Blacklist;
+import org.panda.resource.ChEBI;
+import org.panda.utility.FileUtil;
 import org.panda.utility.Kronometre;
 import org.panda.utility.graph.SIFGenerator;
 
 import java.awt.*;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
 
@@ -30,7 +35,7 @@ import static java.util.stream.Collectors.toSet;
  */
 public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 {
-	Set<String> genes;
+	Set<String> mols;
 
 	Set<String> pathwayIDs;
 
@@ -38,6 +43,7 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 
 	String owlFilename;
 	String blacklistFilename;
+	Model model;
 
 	SIFType[] types;
 
@@ -62,7 +68,7 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 	private Set<SIFInteraction> getSIF(Set<Pathway> pathways, Model model, Blacklist blacklist, SIFType... types)
 	{
 		model = excise(model, pathways);
-		SIFSearcher searcher = new SIFSearcher(types);
+		SIFSearcher searcher = new SIFSearcher(new HGNCChEBIIDFetcher(), types);
 		searcher.setBlacklist(blacklist);
 		return searcher.searchSIF(model);
 	}
@@ -77,7 +83,7 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 
 	private Set<SIFInteraction> removeIrrelevant(Set<SIFInteraction> sifs)
 	{
-		return sifs.stream().filter(i -> genes.contains(i.sourceID) || genes.contains(i.targetID))
+		return sifs.stream().filter(i -> mols.contains(i.sourceID) || mols.contains(i.targetID))
 			.collect(toSet());
 	}
 
@@ -85,10 +91,14 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 	{
 		setDefaultNodeBorderWidth(2);
 		setDefaultNodeBorderColor(Color.BLACK);
+		setNodeNameConversionMap(ChEBI.get().getIdToNameMapping());
 
-		// read model and blacklist
-		SimpleIOHandler h = new SimpleIOHandler(BioPAXLevel.L3);
-		Model model = h.convertFromOWL(new FileInputStream(owlFilename));
+		if (model == null)
+		{
+			// read model and blacklist
+			SimpleIOHandler h = new SimpleIOHandler(BioPAXLevel.L3);
+			model = h.convertFromOWL(new FileInputStream(owlFilename));
+		}
 		Blacklist blacklist = new Blacklist(blacklistFilename);
 
 		// find pathways
@@ -109,7 +119,7 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 		{
 			colorMap.put(ps, COLORS[i++]);
 		}
-		printPathwayColors(colorMap);
+		writePathwayColors(colorMap);
 
 		Set<String> linkerGenes = getGenesInMultiplePathwayGroups(p2sif.values());
 
@@ -121,30 +131,35 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 				addNodeBorderColor(gene, color));
 		});
 
-		Set<String> genesInSIFs = p2sif.values().stream().flatMap(Collection::stream)
+		Set<String> molsInSIFs = p2sif.values().stream().flatMap(Collection::stream)
 			.map(s -> new String[]{s.sourceID, s.targetID}).flatMap(Arrays::stream).collect(toSet());
 
-		genesInSIFs.stream().filter(genes::contains).filter(g -> !hasNodeColor(g)).forEach(gene ->
-			addNodeColor(gene, Color.LIGHT_GRAY));
+		molsInSIFs.stream().filter(mols::contains).filter(m -> !hasNodeColor(m)).forEach(mol ->
+			addNodeColor(mol, Color.LIGHT_GRAY));
 	}
 	catch (IOException e){throw new RuntimeException(e);}}
+
 
 	/**
 	 * This method is useful for creating a legend for the generated SIF graph. It prints the included pathway names in
 	 * html style, which can be displayed in a markdown-supporting wiki page.
 	 * @param colorMap
 	 */
-	private void printPathwayColors(Map<Set<Pathway>, Color> colorMap)
+	private void writePathwayColors(Map<Set<Pathway>, Color> colorMap) { try
 	{
-		System.out.println("<html><body><b>");
+		String filename = getFilenameWithoutExtension() + "-pathway-names.html";
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(filename));
+		writer.write("<html><body><b>\n");
 		colorMap.keySet().forEach(set ->
 		{
 			Color c = colorMap.get(set);
-			set.forEach(p -> System.out.println("<span style=\"color: rgb(" +
-				c.getRed() + "," + c.getGreen() + "," + c.getBlue() + ")\">" + p.getDisplayName() + "</span><br>"));
+			set.forEach(p -> FileUtil.writeln("<span style=\"color: rgb(" + c.getRed() + "," + c.getGreen() + "," +
+				c.getBlue() + ")\">" + p.getDisplayName() + "</span><br>", writer));
 		});
-		System.out.println("</b></body></html>");
+		writer.write("</b></body></html>");
+		writer.close();
 	}
+	catch (IOException e){throw new RuntimeException(e);}}
 
 	private Set<String> getGenesInMultiplePathwayGroups(Collection<Set<SIFInteraction>> sifGroups)
 	{
@@ -170,9 +185,14 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 			.collect(toSet());
 	}
 
-	public void setGenes(Set<String> genes)
+	public void setModel(Model model)
 	{
-		this.genes = genes;
+		this.model = model;
+	}
+
+	public void setMolecules(Set<String> mols)
+	{
+		this.mols = mols;
 	}
 
 	public void setPathwayIDs(Set<String> pathwayIDs)
@@ -225,7 +245,7 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 		gen.setGroupTerms(new String[][]{new String[]{"collagen"}, new String[]{"integrin"}});
 		gen.setTypes(SIFEnum.CONTROLS_STATE_CHANGE_OF, SIFEnum.CONTROLS_EXPRESSION_OF);
 		Set<String> genes = new HashSet<>(Arrays.asList("CDA, SERPINE2, HOXA9, GJA1, MPRIP, MYC, DPYSL3, PRSS3, PRSS2, IER3, GSTK1, HPCAL1, DKK1, FAR2, HPRT1, PRR13, GNE, HS3ST3A1, COL13A1, CRABP2, CDCA4, S100A16, RDH10, S100A13, SFN, PLEK2, S100A10, APCDD1L, NR2F1, FZD8, MLLT11, FOSL1, COL1A2, PKIA, TRIP6, FXYD5, PAM, FERMT2, SRPX, BTG3, ADK, TMEM51, ADM, PYGL, C17orf58, TRIM9, CSRP2, C1QTNF1, HEY1, TMSB4X, TIMP2, NEFL, ANXA7, SH3BGRL3, TIMP1, TEAD2, FGFBP1, SERPINB1, CHST7, ANXA1, ANXA2, GSTO1, IFNGR2, MYOF, ANXA5, DENND2A, EMP1, EMP3, DUSP6, SERPINB5, GCHFR, BACE2, TUBB2B, SLCO4A1, PXDN, PPARG, PLIN2, GRN, AHNAK, GSTP1, FSTL1, C11orf68, PAPSS2, SRPX2, CHN1, CLPTM1, HAS3, FLNC, CDKN2C, TPK1, CDKN2A, G0S2, DHRS3, DCBLD2, SULF2, FABP4, FABP5, DHRS9, ZYX, HSPA1A, TNC, PLOD2, CTGF, LAPTM4B, TUBB6, CDH3, CDH2, FCGRT, TUBB3, PLS3, IL13RA2, SLC16A3, TMSB10, PHLDA1, DGAT1, IGFBP4, FST, UBE2E1, RAB31, RAB34, MRTO4, FSCN1, S100A6, PKP1, S100A4, SQSTM1, FTL, RHOBTB3, KLC1, ITPRIPL2, PGK1, IGFBP6, PI3, PLTP, TFPI2, DRAP1, DAB2, TFCP2, P4HA1, TBXAS1, SPIRE1, OSBPL1A, NES, FHL1, FHL2, SGCE, SCRN1, MDK, EFHD2, PGM5, PGLS, UPP1, PGM1, ITGA3, LIX1L, ADORA2B, LCP1, MET, TNFRSF21, PPP1R15A, PCOLCE2, GLRX, ABLIM3, WBP5, CCL2, ZNF503, IGF2BP2, SH2B3, CTHRC1, SMOX, SEMA4B, AHNAK2, MYO1B, DBNDD2, MARCKS, POLR3A, EIF3G, OCIAD2, SEC24C, PFKP, ERRFI1, IFITM2, ANTXR2, HERC5, LGALS3, LGALS1, PEG10, FTH1, MAGEA1, TNS3, ST6GAL1, HLA-A, TM4SF1, HLA-E, BOLA2, TAGLN2, TAGLN3, TRIB1, RIN2, NBL1, CCNO, EPHA2, PFN2, SDC4, LPAR1, GSPT2, TSPAN5, DECR1, RPL39L, GNG11, PTK2, CIDEC, SPATS2L, CD24, ITM2C, NRP1, SLC35F2, SH3KBP1, MYL6B, PTPRK, AKAP12, UCHL1, RAC2, CD33, CTSC, CTSB, HTATIP2, ZCCHC24, TNFRSF12A, NME4, NOV, TNNT1, ARHGEF3, MAPRE3, FJX1, CD44, CSTB, FOXC1, GNAI2, SERTAD2, HSF1, HSD17B2, LMNA, CD55, MICB, CA12, CD70, CCDC109B, VEGFB, VEGFC, BOP1, KRT19, CD68, FOXA2, DFNA5, PRDM8, ETS1, ACTG1, TMEM145, RGS2, PLAU, ARHGDIB, COTL1, SIRPA, CD97, AMY1A, ANXA11, OCRL, ANXA10, KRT75, SCNN1G, PROCR, COL4A1, EHBP1L1, CHMP4A, VCL, RAI14, FBN2, HTRA1, PLD6, ADRB2, CACNA1H, IRAK2, TFAP2A, CRTAP, SMAD3, CAV2, TGFB3, CAV1, HMGA1, HMGA2, MSN, DNAJC12, ISG15, COL5A2, PHF19, DYRK2, TNFAIP6, CNRIP1, CXCL1, CXCL2, PITPNC1, HAPLN1, CA9, ABCC3, PLAUR, NAV2, ETV4, ETV5, TGFBR2, ALDH1A3, ACOX2, ALDH1A2, COL6A1, RBMS1, CUEDC1, FAM84B, AGPAT9, ASAP1, TFPI, AGPAT2, PDLIM1, C10orf11, CAMK2G, PDLIM7, SNCA, HES4, CMTM7, CMTM8, CMTM3, CARM1, ASB9, PMP22, GALM, VIM, CPVL".split(", ")));
-		gen.setGenes(genes);
+		gen.setMolecules(genes);
 		gen.write("/home/babur/Documents/GeneSetEnrichment/Goutam/pathway");
 		k.print();
 	}
