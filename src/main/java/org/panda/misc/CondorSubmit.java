@@ -16,19 +16,33 @@ import java.util.Set;
 public class CondorSubmit
 {
 	final static boolean COMPUTE_FDR = false;
-	static final String base = "/home/exacloud/lustre1/users/babur/mutex-data/CCLE";
-	static final Set<String> avoid = new HashSet<>(Arrays.asList(""));
+	static final String[] base = new String[]{
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-1",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-2",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-3",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-4",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-5",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-6",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-7",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-8",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-9",
+		"/home/exacloud/lustre1/users/babur/mutex-data/TCGA/PanCan-shuffled-10",
+	};
+	static final Set<String> avoid = new HashSet<>(Arrays.asList("old-version"));
 
 	static final String SUB_DIR = "/home/users/babur/cluster-files";
 	public static void main(String[] args) throws IOException
 	{
-		submitRecursive(base);
+		for (String b : base)
+		{
+			submitRecursive(b);
+		}
 	}
 
 	public static void submitRecursive(String dir) throws IOException
 	{
 		if (COMPUTE_FDR) submitComplete(dir);
-		else if (hasParametersFile(dir)) submitSimpleRun(dir);
+		else if (hasParametersFile(dir) && !hasResultFile(dir)) submitSimpleRun(dir);
 
 		for (File f : new File(dir).listFiles())
 		{
@@ -45,6 +59,18 @@ public class CondorSubmit
 		for (File file : f.listFiles())
 		{
 			if (file.getName().equals("parameters.txt")) return true;
+		}
+		return false;
+	}
+
+	private static boolean hasResultFile(String dir)
+	{
+		File f = new File(dir);
+		if (!f.exists() || !f.isDirectory()) return false;
+
+		for (File file : f.listFiles())
+		{
+			if (file.getName().equals("ranked-groups.txt")) return true;
 		}
 		return false;
 	}
@@ -202,7 +228,7 @@ public class CondorSubmit
 		"getenv = True\n" +
 		"\n" +
 		"#Program\n" +
-		"executable=/usr/bin/java\n" +
+		"executable=/home/users/babur/jdk1.8.0_74/bin/java\n" +
 		"\n" +
 		"#Arguments to the program\n" +
 		"arguments=-jar /home/users/babur/Projects/mutex/target/mutex.jar <DIR>\n" +
@@ -216,8 +242,8 @@ public class CondorSubmit
 		"#Condor log file\n" +
 		"log=$(dir)log.log\n" +
 		"\n" +
-		"#Grab 10GB memory\n" +
-		"request_memory=10240\n" +
+		"#Grab 40GB memory\n" +
+		"request_memory=40960\n" +
 		"\n" +
 		"#Set some estimated run time\n" +
 		"+MaxExecutionTime=86400\n" +

@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
@@ -47,6 +48,8 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 
 	SIFType[] types;
 
+	boolean showOnlySelectedMolecules = false;
+
 	private static final Color[] COLORS = new Color[]{
 		new Color(0, 69, 134),
 		new Color(255, 66, 14),
@@ -64,6 +67,11 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 		new Color(119, 33, 111),
 		new Color(102, 153, 153),
 	};
+
+	public void showOnlySelectedMolecules(boolean showOnlySelectedMolecules)
+	{
+		this.showOnlySelectedMolecules = showOnlySelectedMolecules;
+	}
 
 	private Set<SIFInteraction> getSIF(Set<Pathway> pathways, Model model, Blacklist blacklist, SIFType... types)
 	{
@@ -83,8 +91,10 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 
 	private Set<SIFInteraction> removeIrrelevant(Set<SIFInteraction> sifs)
 	{
-		return sifs.stream().filter(i -> mols.contains(i.sourceID) || mols.contains(i.targetID))
-			.collect(toSet());
+		if (showOnlySelectedMolecules) return sifs.stream()
+			.filter(i -> mols.contains(i.sourceID) && mols.contains(i.targetID)).collect(toSet());
+		else return sifs.stream()
+			.filter(i -> mols.contains(i.sourceID) || mols.contains(i.targetID)).collect(toSet());
 	}
 
 	protected void prepare() { try
@@ -134,11 +144,14 @@ public class PathwayEnrichmentSIFGenerator extends SIFGenerator
 		Set<String> molsInSIFs = p2sif.values().stream().flatMap(Collection::stream)
 			.map(s -> new String[]{s.sourceID, s.targetID}).flatMap(Arrays::stream).collect(toSet());
 
-		molsInSIFs.stream().filter(mols::contains).filter(m -> !hasNodeColor(m)).forEach(mol ->
-			addNodeColor(mol, Color.LIGHT_GRAY));
+		// mark selected molecules if not already only showing them
+		if (!showOnlySelectedMolecules)
+		{
+			molsInSIFs.stream().filter(mols::contains).filter(m -> !hasNodeColor(m)).forEach(mol ->
+				addNodeColor(mol, Color.LIGHT_GRAY));
+		}
 	}
 	catch (IOException e){throw new RuntimeException(e);}}
-
 
 	/**
 	 * This method is useful for creating a legend for the generated SIF graph. It prints the included pathway names in

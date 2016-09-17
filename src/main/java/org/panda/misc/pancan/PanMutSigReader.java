@@ -1,8 +1,13 @@
-package org.panda.misc;
+package org.panda.misc.pancan;
 
 import org.panda.resource.tcga.MutSigReader;
+import org.panda.utility.FileUtil;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,5 +38,17 @@ public class PanMutSigReader
 			}
 		}
 		return best;
+	}
+
+	public static void main(String[] args) throws IOException
+	{
+		// Write pancan ranking based on mutsig
+
+		Map<String, Double> pvals = getBestPValues();
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get("/home/babur/Documents/mutex/TCGA/PanCan/RankedGenes.txt"));
+		writer.write("Gene\tMutSig");
+		pvals.keySet().stream().sorted((g1, g2) -> pvals.get(g1).compareTo(pvals.get(g2))).forEach(g ->
+			FileUtil.lnwrite(g + "\t" + pvals.get(g), writer));
+		writer.close();
 	}
 }

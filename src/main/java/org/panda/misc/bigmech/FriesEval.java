@@ -7,6 +7,7 @@ import org.panda.utility.statistics.Histogram;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.stream.IntStream;
 
 /**
  * For comparing different sets of Mutex results.
@@ -16,29 +17,28 @@ public class FriesEval
 {
 	static Set<String> pcCantFind = new HashSet<>();
 	static Set<String> othersCantFind = new HashSet<>();
-
-//	static final Set<String> consider = new HashSet<>(Arrays.asList("no-network", "fries1K-PC2v7", "fries290K-leidos-PC2v7"));
-	static final Set<String> consider = new HashSet<>(Arrays.asList("no-network", "PC2v7", "fries290K-leidos-PC2v7"));
-//	static final Set<String> consider = new HashSet<>(Arrays.asList("fries290K-leidos-PC2v7", "fries290K-PC2v7"));
+	static List<String> tableRows = new ArrayList<>();
 	/**
 	 * Assumes each individual mutex result is under this directory and shows result overlaps.
 	 * @param dir
 	 */
-	public static void compareMutexResults(String dir, double fdrThr) throws FileNotFoundException
+	public static void compareMutexResults(String dir, double scoreThr, List<String> consider) throws FileNotFoundException
 	{
-		File[] dirs = new File(dir).listFiles();
+//		File[] dirs = new File(dir).listFiles();
 		List<String> nameList = new ArrayList<>();
 		List<Set<String>> setsList = new ArrayList<>();
 		List<Set<String>> setsListWide = new ArrayList<>();
-		for (int i = 0; i < dirs.length; i++)
+//		for (int i = 0; i < dirs.length; i++)
+		for (String name : consider)
 		{
-			if (!dirs[i].isDirectory()) continue;
-			if (consider != null && !consider.contains(dirs[i].getName())) continue;
+//			if (!dirs[i].isDirectory()) continue;
+//			String name = dirs[i].getName();
+			String path = dir + "/" + name;
+			if (consider != null && !consider.contains(name)) continue;
 
-			nameList.add(dirs[i].getName());
-			setsList.    add(MutexReader_old.convertToSet(MutexReader_old.readMutexResults(dirs[i].getPath(), fdrThr, false)));
-			setsListWide.add(MutexReader_old.convertToSet(MutexReader_old.readMutexResults(dirs[i].getPath(), fdrThr + 0.01,
-				false)));
+			nameList.add(name);
+			setsList.    add(MutexReader_old.convertToSet(MutexReader_old.readMutexResults(path, scoreThr, false)));
+			setsListWide.add(MutexReader_old.convertToSet(MutexReader_old.readMutexResults(path, scoreThr + 0.01, false)));
 		}
 
 		String[] names = nameList.toArray(new String[nameList.size()]);
@@ -62,35 +62,53 @@ public class FriesEval
 		CollectionUtil.printNameMapping(names);
 		CollectionUtil.printVennSets(sets);
 
-		int fInd = -1;
-		int pInd = -1;
-		int nInd = -1;
-		for (int i = 0; i < names.length; i++)
-		{
-			if (names[i].equals("no-network")) nInd = i;
-			if (names[i].equals("PC2v7")) pInd = i;
-			if (names[i].equals("fries290K-leidos-PC2v7")) fInd = i;
-		}
+		// Store latex table row
 
-		Set<String> set = new HashSet<>(sets[nInd]);
-		set.removeAll(sets[fInd]);
-		set.removeAll(sets[pInd]);
-		pcCantFind.addAll(set);
+		int[] counts = CollectionUtil.getVennCounts(sets);
+		StringBuilder s = new StringBuilder(dir.substring(dir.indexOf("TCGA/") + 5, dir.lastIndexOf("/")));
+		IntStream.of(counts).forEach(c -> s.append(" & ").append(c));
+		s.append(" \\\\ \\hline");
+		tableRows.add(s.toString());
+
+		// Update global counts
+
+//		int fInd = -1;
+//		int pInd = -1;
+//		int nInd = -1;
+//		for (int i = 0; i < names.length; i++)
+//		{
+//			if (names[i].equals("no-network")) nInd = i;
+//			if (names[i].equals("PC2v7")) pInd = i;
+//			if (names[i].equals("fries290K-PC2v7")) fInd = i;
+//		}
+//
+//		Set<String> set = new HashSet<>(sets[fInd]);
+//		set.removeAll(sets[pInd]);
+//		pcCantFind.addAll(set);
 //		set.removeAll(sets[nInd]);
-		othersCantFind.addAll(set);
+//		othersCantFind.addAll(set);
 	}
 
 	private static void printVennAllOneByOne() throws FileNotFoundException
 	{
-		Set<String> skip = new HashSet<>(Arrays.asList("UVM-keep", "PanCan"));
-		for (File dir : new File("/home/babur/Documents/mutex/TCGA").listFiles())
+		Set<String> skip = new HashSet<>(Arrays.asList("UVM-keep", "PanCan", "networks"));
+
+//		List<String> use = Arrays.asList("no-network", "PC2v8", "REACH-PC2v8");
+//		List<String> use = Arrays.asList("no-network", "REACH-PC2v8", "TR-REACH-PC2v8");
+//		List<String> use = Arrays.asList("no-network", "PC2v8", "TR-PC2v8");
+//		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.1-PC2v8");
+//		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.3-PC2v8");
+//		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.5-PC2v8");
+		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L1.0-PC2v8");
+
+		for (File dir : new File("/home/babur/Documents/DARPA/BigMech/mutex").listFiles())
 		{
 			if (!dir.isDirectory() || skip.contains(dir.getName())) continue;
 
 //			if (!dir.getName().equals("GBM")) continue;
 
-			System.out.println("\n" + dir.getName());
-			compareMutexResults(dir.getPath() + "/outliers-excluded", 0.01);
+			System.out.println("\nCancer type: " + dir.getName());
+			compareMutexResults(dir.getPath(), 0.05, use);
 		}
 	}
 
@@ -127,11 +145,18 @@ public class FriesEval
 		h.print();
 	}
 
+
+
 	public static void main(String[] args) throws FileNotFoundException
 	{
 		printVennAllOneByOne();
-		System.out.println(pcCantFind.toString().replaceAll(",", ""));
-		System.out.println(othersCantFind.toString().replaceAll(",", ""));
+
+//		System.out.print("\nF / P : ");
+//		pcCantFind.stream().sorted().peek(g -> System.out.print(" ")).forEach(System.out::print);
+//		System.out.print("\nF / (P U N) : ");
+//		othersCantFind.stream().sorted().peek(g -> System.out.print(" ")).forEach(System.out::print);
 //		printScoreChangeAllOneByOne();
+//		System.out.println("\n");
+//		tableRows.stream().sorted().forEach(System.out::println);
 	}
 }

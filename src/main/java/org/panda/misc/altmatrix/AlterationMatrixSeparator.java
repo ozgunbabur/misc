@@ -2,6 +2,7 @@ package org.panda.misc.altmatrix;
 
 import org.apache.commons.io.FileUtils;
 import org.panda.utility.statistics.Histogram;
+import org.panda.utility.statistics.OrderedAveragePlot;
 
 import java.io.*;
 import java.util.*;
@@ -13,9 +14,9 @@ public class AlterationMatrixSeparator
 {
 	public static void main(String[] args) throws IOException
 	{
-//		printHistogram("/home/babur/Documents/mutex/TCGA/LAML/outliers-excluded/DataMatrix.txt", 100);
+		printHistogram("/home/babur/Documents/mutex/TCGA/PanCan-shuffled-1/1/1/DataMatrix.txt", 100);
 
-		String base = "/home/babur/Documents/mutex/TCGA/PanCan/mutations-only";
+//		String base = "/home/babur/Documents/mutex/TCGA/PanCan/mutations-only";
 //		separate(base, "whole", new String[]{"0-50", "0-100", "0-200", "0-400"});
 
 //		String dir = "/home/babur/Documents/mutex/TCGA/";
@@ -35,7 +36,13 @@ public class AlterationMatrixSeparator
 //				new File(dir.getPath() + "/whole"));
 //		}
 
-		separate(base, base + "/whole", 10);
+//		separate(base, base + "/whole", 10);
+
+//		separateWithGeneAlterationStatus("/home/babur/Documents/mutex/TCGA/PanCan/1/1/DataMatrix.txt",
+//			"/home/babur/Documents/mutex/TCGA/PanCan-TP53/intact/1/1/DataMatrix.txt", "TP53",
+//			alt -> alt == 0);
+
+//		copyNewAnalysisDir();
 	}
 
 	/**
@@ -134,6 +141,11 @@ public class AlterationMatrixSeparator
 		copySubdirs(new File(baseDir + "/" + useDir), new File(newDir));
 	}
 
+	public static void separateWithGeneAlterationStatus(String input, String output, String gene, AlterationSelector selector) throws IOException
+	{
+		writeSubset(input, output, selectSamplesWithGeneAlterationStatus(input, gene, selector));
+	}
+
 	/**
 	 *
 	 * @param inFile data matrix
@@ -193,6 +205,20 @@ public class AlterationMatrixSeparator
 		}
 	}
 
+	private static void copyNewAnalysisDir() throws IOException
+	{
+		String base = "/home/babur/Documents/mutex/TCGA/PanCan-TP53/intact/";
+		File dirFrom = new File(base + "1/1");
+
+		for (int i = 2; i < 10; i++)
+		{
+			for (int j = 1; j <= i; j++)
+			{
+				copySubdirs(dirFrom, new File(base + i + "/" + j));
+			}
+		}
+	}
+
 	public static void printHistogram(String file, int binSize) throws FileNotFoundException
 	{
 		Map<String, Integer> counts = readSampleAlterationCounts(file);
@@ -203,6 +229,10 @@ public class AlterationMatrixSeparator
 			h.count(i);
 		}
 		h.print();
+
+		System.out.println();
+		OrderedAveragePlot oap = new OrderedAveragePlot(counts.values(), true);
+		oap.plot(30);
 	}
 
 	public static Map<String, Integer> readSampleAlterationCounts(String file) throws FileNotFoundException
@@ -228,5 +258,34 @@ public class AlterationMatrixSeparator
 		}
 		sc.close();
 		return map;
+	}
+
+	public static Set<String> selectSamplesWithGeneAlterationStatus(String file, String gene, AlterationSelector selector)
+		throws FileNotFoundException
+	{
+		Scanner sc = new Scanner(new File(file));
+		String[] header = sc.nextLine().split("\t");
+		String[] row = null;
+		while (sc.hasNextLine() && row == null)
+		{
+			String line = sc.nextLine();
+			if (line.startsWith(gene + "\t"))
+			{
+				row = line.split("\t");
+			}
+		}
+		if (row == null) throw new RuntimeException("Cannot find the gene: " + gene);
+
+		Set<String> samples = new HashSet<>();
+		for (int i = 1; i < header.length; i++)
+		{
+			if (selector.select(Integer.parseInt(row[i]))) samples.add(header[i]);
+		}
+		return samples;
+	}
+
+	interface AlterationSelector
+	{
+		boolean select(int alt);
 	}
 }

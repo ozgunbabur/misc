@@ -1,4 +1,4 @@
-package org.panda.misc;
+package org.panda.misc.pancan;
 
 import org.panda.utility.Progress;
 
