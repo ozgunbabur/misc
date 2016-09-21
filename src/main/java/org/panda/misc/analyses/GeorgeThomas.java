@@ -53,7 +53,7 @@ public class GeorgeThomas
 		mtor.makeActivityNode(false);
 		rppas.add(mtor);
 
-		RPPAFrontFace.generateRPPAGraphs(rppas, 1.5, "compatible", true, true, base + "ACHN-compatible-temp");
+		RPPAFrontFace.generateRPPAGraphs(rppas, 1.5, "compatible", true, true, false, base + "ACHN-compatible-temp");
 	}
 
 	private static void compareSets(Set<RPPAData>... sets)
