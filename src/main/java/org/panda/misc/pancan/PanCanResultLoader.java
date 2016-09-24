@@ -36,7 +36,7 @@ public class PanCanResultLoader
 		Object[] o = readGroupsWithFlattenedControl(true,
 			base + "PanCan-results", base + "PanCan-shuffled-?-results",
 			f -> !PanCanROC.hasNameOverThan(f.getName(), 30) &&
-				!(f.getName().startsWith("random") || f.getName().startsWith("PC")));
+				!(f.getName().startsWith("r") || f.getName().startsWith("PC")));
 
 		Set<MutexReader.Group> groups = (Set<MutexReader.Group>) o[0];
 
@@ -118,6 +118,11 @@ public class PanCanResultLoader
 	{
 		String dir = baseDir + branch;
 
+		if (!Files.exists(Paths.get(dir)))
+		{
+			System.out.println("Missing dir = " + dir);
+		}
+
 		if (result == null) result = new Object[2];
 
 		if (Files.exists(Paths.get(dir + "/" + (mutex ? MUTEX_FILE : COOC_FILE))))
@@ -185,13 +190,13 @@ public class PanCanResultLoader
 		}
 		if (missing > 0)
 		{
-			Map<Set<Group>, Double> setToBound = sets.stream().filter(Objects::nonNull).collect(toMap(s -> s, s -> s.stream()
-				.map(g -> g.score).min(Double::compare).get()));
+			Map<Set<Group>, Double> setToBound = sets.stream().filter(Objects::nonNull).collect(toMap(s -> s,
+					s -> s.stream().map(g -> g.score).min(Double::compare).get(), (s, s1) -> s));
 
 			List<Set<Group>> nonNullSets = sets.stream().filter(Objects::nonNull).collect(toList());
 			Collections.sort(nonNullSets, (o1, o2) -> setToBound.get(o1).compareTo(setToBound.get(o2)));
 
-			List<Set<Group>> sub = new ArrayList<>(nonNullSets.subList(0, missing));
+			List<Set<Group>> sub = new ArrayList<>(nonNullSets.subList(0, Math.min(missing, nonNullSets.size())));
 
 			for (Set<Group> set : sub)
 			{
@@ -200,7 +205,8 @@ public class PanCanResultLoader
 				sets.add(i, cloneGroups(set));
 			}
 
-			return true;
+			if (nonNullSets.size() < missing) return ensure10(sets);
+			else return true;
 		}
 		return false;
 	}

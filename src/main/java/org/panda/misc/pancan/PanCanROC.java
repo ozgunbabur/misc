@@ -24,8 +24,8 @@ public class PanCanROC
 
 	public static void main(String[] args) throws IOException
 	{
-//		doReachAssessment();
-		findBestMaxDiv();
+		doReachAssessment();
+//		findBestMaxDiv();
 	}
 
 	private static void doReachAssessment()
@@ -34,14 +34,14 @@ public class PanCanROC
 
 		Map<String, MutexReader.DirectoryFilter> filterMap = new LinkedHashMap<>();
 		filterMap.put("W", f -> !hasNameOverThan(f.getName(), div) && !f.getName().endsWith("PC2v8"));
-		filterMap.put("P", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().equals("no-network") || f.getName().startsWith("fries") || f.getName().startsWith("random")));
-		filterMap.put("R", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().equals("no-network") || f.getName().equals("PC2v8") || f.getName().startsWith("random")));
-		filterMap.put("WP", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("fries") || f.getName().startsWith("random")));
-		filterMap.put("WR", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("PC") || f.getName().startsWith("random")));
-		filterMap.put("PR", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("no") || f.getName().startsWith("random")));
-		filterMap.put("WPR", f -> !hasNameOverThan(f.getName(), div) && ! f.getName().startsWith("random"));
-		filterMap.put("WR'", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("fries") || f.getName().startsWith("PC")));
-		filterMap.put("R'", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("fries") || f.getName().equals("PC2v8") || f.getName().equals("no-network")));
+		filterMap.put("P", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().equals("no-network") || f.getName().startsWith("REACH") || f.getName().startsWith("r")));
+		filterMap.put("R", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().equals("no-network") || f.getName().equals("PC2v8") || f.getName().startsWith("r")));
+		filterMap.put("WP", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("REACH") || f.getName().startsWith("r")));
+		filterMap.put("WR", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("PC") || f.getName().startsWith("r")));
+		filterMap.put("PR", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().equals("no-network") || f.getName().startsWith("r")));
+		filterMap.put("WPR", f -> !hasNameOverThan(f.getName(), div) && ! f.getName().startsWith("r"));
+		filterMap.put("WR'", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("REACH") || f.getName().startsWith("PC")));
+		filterMap.put("R'", f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("REACH") || f.getName().equals("PC2v8") || f.getName().equals("no-network")));
 
 		drawRoc(filterMap, 1000, true);
 	}
