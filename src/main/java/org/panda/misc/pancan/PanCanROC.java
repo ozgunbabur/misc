@@ -24,8 +24,8 @@ public class PanCanROC
 
 	public static void main(String[] args) throws IOException
 	{
-		doReachAssessment();
-//		findBestMaxDiv();
+//		doReachAssessment();
+		findBestMaxDiv();
 	}
 
 	private static void doReachAssessment()
@@ -52,8 +52,8 @@ public class PanCanROC
 		for (int i = 1; i <= 30; i++)
 		{
 			int div = i;
-//			filterMap.put("" + div, f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("random")));
-			filterMap.put("" + div, f -> (f.getPath().contains("/" + div + "/") || f.getPath().endsWith("/" + div)) && !(f.getName().startsWith("random")));
+			filterMap.put("" + div, f -> !hasNameOverThan(f.getName(), div) && !(f.getName().startsWith("r") || f.getName().startsWith("PC")));
+//			filterMap.put("" + div, f -> (f.getPath().contains("/" + div + "/") || f.getPath().endsWith("/" + div)) && !(f.getName().startsWith("random")));
 		}
 
 		drawRoc(filterMap, 1000, true);

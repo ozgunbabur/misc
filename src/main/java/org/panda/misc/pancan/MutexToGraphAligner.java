@@ -142,7 +142,7 @@ public class MutexToGraphAligner
 		List<Graph> graphs = new ArrayList<>();
 		Graph csc = PathwayCommons.get().getGraph(SIFEnum.CONTROLS_STATE_CHANGE_OF);
 		Graph g = new Graph("Reach", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
-		g.load("/home/babur/Documents/mutex/networks/fries290K.sif", Collections.emptySet(), Collections.singleton(g.getEdgeType()));
+		g.load("/home/babur/Documents/mutex/networks/REACH.sif", Collections.emptySet(), Collections.singleton(g.getEdgeType()));
 		csc.merge(g);
 		graphs.add(csc);
 		graphs.add(PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF));
@@ -253,12 +253,12 @@ public class MutexToGraphAligner
 //		MutexReader.readMutexResultsRecursive(base + "PanCan-results", new HashSet<>(),
 //			f -> useDir(f.getName()));
 
-		writeNetworkSupportingMutexResults(groups, 0.1976, loadGraphs(), base + "aligned-network");
+		writeNetworkSupportingMutexResults(groups, 0.084, loadGraphs(), base + "aligned-network");
 //		writeInSameGroupNetwork(groups, 0.01, base + "mutex-pairings");
 	}
 
 	static boolean useDir(String dirName)
 	{
-		return Character.isDigit(dirName.charAt(0)) || dirName.equals("no-network") || dirName.equals("fries290K-PC2v8");
+		return Character.isDigit(dirName.charAt(0)) || dirName.equals("no-network") || dirName.equals("REACH-PC2v8");
 	}
 }
