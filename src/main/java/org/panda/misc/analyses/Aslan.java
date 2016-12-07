@@ -36,7 +36,7 @@ public class Aslan
 	{
 		String[] header = Files.lines(Paths.get(PHOS_IN)).skip(4).findFirst().get().split("\t");
 
-		int siteInd = ArrayUtil.indexOf(header, "Mod Protein Location");
+		int siteInd = ArrayUtil.indexOf(header, "Adjusted Sites");
 		int qvalInd = ArrayUtil.indexOf(header, "FDR");
 		int fcInd = ArrayUtil.indexOf(header, "fold change");
 		int logfcInd = ArrayUtil.indexOf(header, "logFC");
@@ -107,6 +107,15 @@ public class Aslan
 	static void generatePhosphoprotemicsGraph() throws IOException
 	{
 		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", false, true, true, BASE + "phos-graph", null);
+			"compatible", true, 0, 0, true, false, BASE + "network-sitematch-matchProx0-effectProx0", null);
+
+		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
+			"compatible", true, 10, 10, true, false, BASE + "network-sitematch-matchProx10-effectProx10", null);
+
+		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
+			"compatible", false, 0, 10, true, false, BASE + "network-noSiteMatch-effectProx10", null);
+
+		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
+			"compatible", false, 0, 0, true, true, BASE + "network-noSiteMatch-withUnknownEffect", null);
 	}
 }
