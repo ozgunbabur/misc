@@ -1,5 +1,6 @@
 package org.panda.misc.pancan;
 
+import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.Progress;
 import org.panda.utility.TermCounter;
@@ -72,6 +73,12 @@ public class PanCanSampleAssociator
 		return cnt;
 	}
 
+	public Map<String, Integer> getOverlapTypeCounts(Collection<String> samples1, Collection<String> samples2)
+	{
+		Set<String> samples = CollectionUtil.getIntersection(samples1, samples2);
+		return getTypeCounts(samples);
+	}
+
 	public String getCancerTypeOf(String sample)
 	{
 		return sampleToType.get(sample);
@@ -137,19 +144,27 @@ public class PanCanSampleAssociator
 
 	public static void main(String[] args) throws IOException
 	{
-//		List<String> genes = Arrays.asList("BTBD11", "RAI1");
-//		PanCanSampleAssociator sa = new PanCanSampleAssociator();
-//		Map<String, Set<String>> alteredSamples = sa.getAlteredSamples(sa.matrixFile, genes);
-//		for (String gene : alteredSamples.keySet())
-//		{
-//			System.out.println("\ngene = " + gene);
-//			Set<String> samples = alteredSamples.get(gene);
-//			Map<String, Integer> counts = sa.getTypeCounts(samples);
-//			counts.keySet().stream().sorted((t1, t2) -> counts.get(t2).compareTo(counts.get(t1))).forEach(t ->
-//				System.out.println(t + "\t" + counts.get(t)));
-//		}
+		String g1 = "ZNF732";
+		String g2 = "MAP1B";
 
-		PanCanSampleAssociator pa = new PanCanSampleAssociator();
-		pa.writeSampleToType();
+		List<String> genes = Arrays.asList(g1, g2);
+		PanCanSampleAssociator sa = new PanCanSampleAssociator();
+		Map<String, Set<String>> alteredSamples = sa.getAlteredSamples(sa.matrixFile, genes);
+		for (String gene : alteredSamples.keySet())
+		{
+			System.out.println("\ngene = " + gene);
+			Set<String> samples = alteredSamples.get(gene);
+			Map<String, Integer> counts = sa.getTypeCounts(samples);
+			counts.keySet().stream().sorted((t1, t2) -> counts.get(t2).compareTo(counts.get(t1))).forEach(t ->
+				System.out.println(t + "\t" + counts.get(t)));
+		}
+
+		System.out.println("\nOverlap of " + g1 + " and " + g2);
+		Map<String, Integer> counts = sa.getOverlapTypeCounts(alteredSamples.get(g1), alteredSamples.get(g2));
+		counts.keySet().stream().sorted((t1, t2) -> counts.get(t2).compareTo(counts.get(t1))).forEach(t ->
+			System.out.println(t + "\t" + counts.get(t)));
+
+//		PanCanSampleAssociator pa = new PanCanSampleAssociator();
+//		pa.writeSampleToType();
 	}
 }

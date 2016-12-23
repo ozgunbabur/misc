@@ -14,9 +14,9 @@ public class AlterationMatrixSeparator
 {
 	public static void main(String[] args) throws IOException
 	{
-		printHistogram("/home/babur/Documents/mutex/TCGA/PanCan-shuffled-1/1/1/DataMatrix.txt", 100);
+//		printHistogram("/home/babur/Documents/mutex/BMEG/HNSC/TCGA-HNSC.tsv", 100);
 
-//		String base = "/home/babur/Documents/mutex/TCGA/PanCan/mutations-only";
+		String base = "/home/babur/Documents/mutex/BMEG/HNSC/";
 //		separate(base, "whole", new String[]{"0-50", "0-100", "0-200", "0-400"});
 
 //		String dir = "/home/babur/Documents/mutex/TCGA/";
@@ -36,7 +36,8 @@ public class AlterationMatrixSeparator
 //				new File(dir.getPath() + "/whole"));
 //		}
 
-//		separate(base, base + "/whole", 10);
+//		separate(base, base + "/whole", 2);
+		separateNonOutliers(base, base + "/whole");
 
 //		separateWithGeneAlterationStatus("/home/babur/Documents/mutex/TCGA/PanCan/1/1/DataMatrix.txt",
 //			"/home/babur/Documents/mutex/TCGA/PanCan-TP53/intact/1/1/DataMatrix.txt", "TP53",
@@ -90,7 +91,7 @@ public class AlterationMatrixSeparator
 
 	public static void separateNonOutliers(String baseDir, String wholeDir) throws IOException
 	{
-		String inFile = baseDir + "/" + wholeDir + "/DataMatrix.txt";
+		String inFile = wholeDir + "/DataMatrix.txt";
 		Map<String, Integer> cnt = readSampleAlterationCounts(inFile);
 
 		List<Integer> list = new ArrayList<>(cnt.values());

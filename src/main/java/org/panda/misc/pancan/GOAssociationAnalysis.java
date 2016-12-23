@@ -20,13 +20,16 @@ public class GOAssociationAnalysis
 {
 	public static void main(String[] args) throws IOException
 	{
-//		printResultGeneStatusForHighlighting();
-		printEnrichmentMovingWindow();
+		printResultGeneStatusForHighlighting();
+//		printNegativeControlGeneStatusForHighlighting();
+//		printEnrichmentMovingWindow();
 	}
 
 	static void printResultGeneStatusForHighlighting() throws IOException
 	{
-		List<String> genes = readGeneList(500);
+		int size = 100;
+		int cols = 5;
+		List<String> genes = readGeneList(size);
 
 		Set<String> ids = readSelectedEnrichedGOIDs();
 		Set<String> goTagged = new HashSet<>(GO.get().getGenes(ids));
@@ -35,21 +38,63 @@ public class GOAssociationAnalysis
 		Set<String> canTagged = new HashSet<>(PanCanResultLoader.readCancerGenes());
 		System.out.println("canTagged.size() = " + canTagged.size());
 
-		Set<String> keywords = readInterestKeywords();
-		Set<String> goKeyword = GO.get().getGenesContainingKeywordInTermNames(keywords);
-		System.out.println("goKeyword.size() = " + goKeyword.size());
-		System.out.println("Go keyword in 500 = " + CollectionUtil.countOverlap(genes, goKeyword));
+		Set<String> pathwayEnriched = Files.lines(Paths.get("/home/babur/Documents/PanCan/tissue-unnormalized-results/pathway-enrichment.txt"))
+			.skip(10).map(l -> l.split("\t")).filter(t -> Double.parseDouble(t[4]) < 0.01).map(t -> t[8].split(", "))
+			.flatMap(Arrays::stream).collect(Collectors.toSet());
 
-		List<String> tag = new ArrayList<>(500);
+		System.out.println("pathwayEnriched.size() = " + pathwayEnriched.size());
+
+		System.out.println("All genes in GO = " + GO.get().getAllGenes().size());
+
+
+		List<String> tag = new ArrayList<>(size);
 		for (String gene : genes)
 		{
-			tag.add(canTagged.contains(gene) ? "X" : goTagged.contains(gene) ? "E" : goKeyword.contains(gene) ? "K" : "");
+			tag.add(canTagged.contains(gene) ? "X" : goTagged.contains(gene) ? pathwayEnriched.contains(gene) ? "EB" : "EG" : pathwayEnriched.contains(gene) ? "EP" : "");
 		}
 		System.out.println("X = " + CollectionUtil.countValues(tag, "X"));
-		System.out.println("E = " + CollectionUtil.countValues(tag, "E"));
-		System.out.println("K = " + CollectionUtil.countValues(tag, "K"));
-		printInColumns(genes, 50);
-		printInColumns(tag, 50);
+		System.out.println("EG = " + CollectionUtil.countValues(tag, "EG"));
+		System.out.println("EP = " + CollectionUtil.countValues(tag, "EP"));
+		System.out.println("EB = " + CollectionUtil.countValues(tag, "EB"));
+		System.out.println("no tag = " + CollectionUtil.countValues(tag, ""));
+		printInColumns(genes, size/cols);
+		printInColumns(tag, size/cols);
+	}
+
+	static void printNegativeControlGeneStatusForHighlighting() throws IOException
+	{
+		int size = 500;
+		int cols = 10;
+		List<String> genes = readControlList(size);
+
+		Set<String> ids = readSelectedEnrichedControlGOIDs();
+		Set<String> goTagged = new HashSet<>(GO.get().getGenes(ids));
+		System.out.println("goTagged.size() = " + goTagged.size());
+
+		Set<String> canTagged = new HashSet<>(PanCanResultLoader.readCancerGenes());
+		System.out.println("canTagged.size() = " + canTagged.size());
+
+		Set<String> pathwayEnriched = Files.lines(Paths.get("/home/babur/Documents/PanCan/tissue-unnormalized-results/pathway-enrichment-control.txt"))
+			.skip(10).map(l -> l.split("\t")).filter(t -> Double.parseDouble(t[4]) < 0.01).map(t -> t[8].split(", "))
+			.flatMap(Arrays::stream).collect(Collectors.toSet());
+
+		System.out.println("pathwayEnriched.size() = " + pathwayEnriched.size());
+
+		System.out.println("All genes in GO = " + GO.get().getAllGenes().size());
+
+
+		List<String> tag = new ArrayList<>(size);
+		for (String gene : genes)
+		{
+			tag.add(canTagged.contains(gene) ? "X" : goTagged.contains(gene) ? pathwayEnriched.contains(gene) ? "EB" : "EG" : pathwayEnriched.contains(gene) ? "EP" : "");
+		}
+		System.out.println("X = " + CollectionUtil.countValues(tag, "X"));
+		System.out.println("EG = " + CollectionUtil.countValues(tag, "EG"));
+		System.out.println("EP = " + CollectionUtil.countValues(tag, "EP"));
+		System.out.println("EB = " + CollectionUtil.countValues(tag, "EB"));
+		System.out.println("no tag = " + CollectionUtil.countValues(tag, ""));
+		printInColumns(genes, size/cols);
+		printInColumns(tag, size/cols);
 	}
 
 	static Set<String> readInterestKeywords() throws IOException
@@ -64,9 +109,22 @@ public class GOAssociationAnalysis
 			.filter(l -> !l.startsWith("#")).map(l -> l.split("\t")[0]).collect(Collectors.toSet());
 	}
 
+	static Set<String> readSelectedEnrichedControlGOIDs() throws IOException
+	{
+		return Files.lines(Paths.get("/home/babur/Documents/PanCan/selected-enriched-GO-terms-control.txt"))
+			.filter(l -> !l.startsWith("#")).map(l -> l.split("\t")[0]).collect(Collectors.toSet());
+	}
+
 	static List<String> readGeneList(int limit) throws IOException
 	{
 		return Files.lines(Paths.get("/home/babur/Documents/PanCan/pancan.txt")).skip(1).limit(limit)
+//		return Files.lines(Paths.get("/home/babur/Documents/PanCan/tissue-unnormalized-results/pancan.txt")).skip(1).limit(limit)
+			.map(l -> l.split("\t")[0]).collect(Collectors.toList());
+	}
+
+	static List<String> readControlList(int limit) throws IOException
+	{
+		return Files.lines(Paths.get("/home/babur/Documents/PanCan/tissue-unnormalized-results/sorted-to-freq.txt")).skip(1).limit(limit)
 			.map(l -> l.split("\t")[0]).collect(Collectors.toList());
 	}
 
@@ -94,7 +152,7 @@ public class GOAssociationAnalysis
 		Set<String> allGOGenes = new HashSet<>(genes);
 		Set<String> assocGenes = PanCanResultLoader.readCancerGenes();
 
-		int window = 500;
+		int window = 100;
 
 		allGOGenes.retainAll(genes);
 		assocGenes.retainAll(genes);

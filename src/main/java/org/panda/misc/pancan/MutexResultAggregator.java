@@ -22,7 +22,7 @@ public class MutexResultAggregator
 {
 	public static void main(String[] args) throws IOException
 	{
-//		printGroupsOf("/home/babur/Documents/PanCan/PanCan-results/", "TAF1L", 0.01);
+		printGroupsOf("/home/babur/Documents/PanCan/PanCan-results/", "TPTE", 0.05);
 
 //		int maxDiv = 21;
 //		prepareGeneRanking("/home/babur/Documents/PanCan/PanCan-results/", "/home/babur/Documents/PanCan/pancan.txt", maxDiv); System.out.println("---");

@@ -141,11 +141,12 @@ public class MutexToGraphAligner
 	{
 		List<Graph> graphs = new ArrayList<>();
 		Graph csc = PathwayCommons.get().getGraph(SIFEnum.CONTROLS_STATE_CHANGE_OF);
-		Graph g = new Graph("Reach", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
-		g.load("/home/babur/Documents/mutex/networks/REACH.sif", Collections.emptySet(), Collections.singleton(g.getEdgeType()));
-		csc.merge(g);
+//		Graph g = new Graph("Reach", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
+//		g.load("/home/babur/Documents/mutex/networks/REACH.sif", Collections.emptySet(), Collections.singleton(g.getEdgeType()));
+//		csc.merge(g);
 		graphs.add(csc);
-		graphs.add(PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF));
+//		graphs.add(PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF));
+
 //		Graph ppi = PathwayCommons.get().getGraph(SIFEnum.IN_COMPLEX_WITH);
 //		ppi.merge(PathwayCommons.get().getGraph(SIFEnum.INTERACTS_WITH));
 //		graphs.add(ppi);
@@ -245,7 +246,7 @@ public class MutexToGraphAligner
 
 	public static void main(String[] args) throws IOException
 	{
-		String base = "/home/babur/Documents/PanCan/";
+		String base = "/home/babur/Documents/PanCan/tissue-unnormalized-results/";
 		Object[] o = PanCanResultLoader.readGroupsWithFlattenedControl(true, base + "PanCan-results",
 			base + "PanCan-shuffled-?-results", f -> useDir(f.getName()));
 		Set<Group> groups = (Set<Group>) o[0];
@@ -253,12 +254,12 @@ public class MutexToGraphAligner
 //		MutexReader.readMutexResultsRecursive(base + "PanCan-results", new HashSet<>(),
 //			f -> useDir(f.getName()));
 
-		writeNetworkSupportingMutexResults(groups, 0.084, loadGraphs(), base + "aligned-network");
+		writeNetworkSupportingMutexResults(groups, 0.1971, loadGraphs(), base + "aligned-network-PCcsc");
 //		writeInSameGroupNetwork(groups, 0.01, base + "mutex-pairings");
 	}
 
 	static boolean useDir(String dirName)
 	{
-		return Character.isDigit(dirName.charAt(0)) || dirName.equals("no-network") || dirName.equals("REACH-PC2v8");
+		return Character.isDigit(dirName.charAt(0)) || dirName.equals("no-network") || dirName.equals("REACH-PC2v8") || dirName.equals("fries290K-PC2v8");
 	}
 }

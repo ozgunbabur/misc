@@ -1,5 +1,6 @@
 package org.panda.misc.analyses;
 
+import org.biopax.paxtools.pattern.miner.SIFEnum;
 import org.panda.causalpath.analyzer.CausalitySearcher;
 import org.panda.causalpath.analyzer.OneDataChangeDetector;
 import org.panda.causalpath.analyzer.ThresholdDetector;
@@ -8,15 +9,23 @@ import org.panda.causalpath.data.ProteinData;
 import org.panda.causalpath.network.GraphWriter;
 import org.panda.causalpath.run.RPPAFrontFace;
 import org.panda.resource.PhosphoSitePlus;
+import org.panda.resource.network.PathwayCommons;
+import org.panda.resource.network.SignedPC;
+import org.panda.resource.signednetwork.SignedType;
 import org.panda.resource.tcga.RPPAData;
 import org.panda.causalpath.resource.RPPAFileReader;
+import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.ValToColor;
+import org.panda.utility.graph.Graph;
 
 import java.awt.*;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by babur on 3/2/16.
@@ -38,6 +47,12 @@ public class GeorgeThomas
 
 	public static void main(String[] args) throws IOException
 	{
+		doCausalityAnalysis();
+//		reportTFEnrichment(readRNAseq());
+	}
+
+	public static void doCausalityAnalysis() throws IOException
+	{
 		int valInd1 = ACHN;
 		int valInd2 = ACHN;
 
@@ -50,10 +65,10 @@ public class GeorgeThomas
 		PhosphoSitePlus.get().fillInMissingEffect(rppas, 10);
 
 		RPPAData mtor = new RPPAData("MTOR-inactivated", null, Arrays.asList("MTOR"), null);
-		mtor.makeActivityNode(false);
+		mtor.makeActivityNode(true);
 		rppas.add(mtor);
 
-		RPPAFrontFace.generateRPPAGraphs(rppas, 1.5, "compatible", true, 0, true, false, base + "ACHN-compatible-temp");
+		RPPAFrontFace.generateRPPAGraphs(rppas, 1.5, "compatible", true, 0, true, false, base + "ACHN-compatible-temp2");
 	}
 
 	private static void compareSets(Set<RPPAData>... sets)
@@ -244,5 +259,55 @@ public class GeorgeThomas
 		return set;
 	}
 
+	private static Map<String, Double> readRNAseq() throws IOException
+	{
+		String filename = base + "RNAseq_ACHN_CYT_updatedTable3_March172014-1.txt";
+		String[] header = Files.lines(Paths.get(filename)).skip(3).findFirst().get().split("\t");
+		int geneIndex = ArrayUtil.indexOf(header, "Gene Symbol");
+		int fcIndex = ArrayUtil.indexOf(header, "FC_Cyt24_Veh24");
 
+		return Files.lines(Paths.get(filename)).skip(4).map(l -> l.split("\t"))
+			.collect(Collectors.toMap(t -> t[geneIndex], t -> Double.parseDouble(t[fcIndex]),
+				(v1, v2) -> Math.abs(v1) > Math.abs(v2) ? v1 : v2));
+	}
+
+	private static void reportTFEnrichment(Map<String, Double> rnaseq)
+	{
+		double thr = 2;
+		long posCnt = rnaseq.values().stream().filter(v -> Math.abs(v) >= thr).filter(v -> v > 0).count();
+		long negCnt = rnaseq.values().stream().filter(v -> Math.abs(v) >= thr).filter(v -> v < 0).count();
+
+		System.out.println("posCnt = " + posCnt);
+		System.out.println("negCnt = " + negCnt);
+
+		Graph graph = PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF);
+		Map<String, Double> select = rnaseq.keySet().stream().filter(k -> Math.abs(rnaseq.get(k)) >= thr)
+			.collect(Collectors.toMap(k -> k, rnaseq::get));
+
+		List<String> enriched = graph.getEnrichedGenes(
+			select.keySet(), rnaseq.keySet(), 0.1, Graph.NeighborType.DOWNSTREAM, 1, 5);
+
+		System.out.println("enriched = " + enriched);
+
+		Graph upGraph = SignedPC.get().getGraph(SignedType.UPREGULATES_EXPRESSION);
+		Graph dwGraph = SignedPC.get().getGraph(SignedType.DOWNREGULATES_EXPRESSION);
+
+		for (String gene : enriched)
+		{
+			System.out.println("\ngene = " + gene + "\t" + graph.getDownstream(gene).size() + "\t" +
+				CollectionUtil.countOverlap(graph.getDownstream(gene), rnaseq.keySet()) + "\t" +
+				CollectionUtil.countOverlap(graph.getDownstream(gene), select.keySet()));
+
+			System.out.println("Upregulated\t" + CollectionUtil.countOverlap(upGraph.getDownstream(gene), rnaseq.keySet()) + "\t" + CollectionUtil.countOverlap(upGraph.getDownstream(gene), select.keySet()));
+			for (String target : upGraph.getDownstream(gene))
+			{
+				if (select.containsKey(target)) System.out.println(target + "\t" + rnaseq.get(target));
+			}
+			System.out.println("Downregulated	" + CollectionUtil.countOverlap(dwGraph.getDownstream(gene), rnaseq.keySet()) + "\t" + CollectionUtil.countOverlap(dwGraph.getDownstream(gene), select.keySet()));
+			for (String target : dwGraph.getDownstream(gene))
+			{
+				if (select.containsKey(target)) System.out.println(target + "\t" + rnaseq.get(target));
+			}
+		}
+	}
 }

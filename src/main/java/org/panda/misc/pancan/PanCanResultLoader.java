@@ -5,6 +5,7 @@ import org.panda.misc.MutexReader.*;
 import org.panda.resource.CancerGeneBushman;
 import org.panda.resource.CancerGeneCensus;
 import org.panda.resource.OncoKB;
+import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.statistics.FDR;
 import org.panda.utility.statistics.Summary;
@@ -31,11 +32,11 @@ public class PanCanResultLoader
 
 	public static void main(String[] args) throws IOException
 	{
-		String base = "/home/babur/Documents/PanCan/";
+		String base = "/home/babur/Documents/PanCan/tissue-unnormalized-results/";
 
 		Object[] o = readGroupsWithFlattenedControl(true,
 			base + "PanCan-results", base + "PanCan-shuffled-?-results",
-			f -> !PanCanROC.hasNameOverThan(f.getName(), 30) &&
+			f -> !PanCanROC.hasNameOverThan(f.getName(), 3) &&
 				!(f.getName().startsWith("r") || f.getName().startsWith("PC")));
 
 		Set<MutexReader.Group> groups = (Set<MutexReader.Group>) o[0];
@@ -54,7 +55,7 @@ public class PanCanResultLoader
 		set.retainAll(cancerGenes);
 		System.out.println("known cancer genes = " + set.size());
 
-		writeRankedGenes(groups, rand, iter, base + "pancan.txt");
+		writeRankedGenes(groups, rand, iter, base + "pancan-3.txt");
 	}
 
 	public static Set<String> readCancerGenes()
@@ -62,6 +63,10 @@ public class PanCanResultLoader
 		Set<String> genes = new HashSet<>();
 		genes.addAll(CancerGeneCensus.get().getAllSymbols());
 		genes.addAll(OncoKB.get().getAllSymbols());
+
+		CollectionUtil.printNameMapping("CGC", "OncoKB");
+		CollectionUtil.printVennCounts(CancerGeneCensus.get().getAllSymbols(), OncoKB.get().getAllSymbols());
+
 //		genes.addAll(CancerGeneBushman.get().getAllSymbols());
 		return genes;
 	}
