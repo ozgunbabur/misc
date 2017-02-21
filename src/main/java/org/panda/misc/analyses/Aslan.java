@@ -1,6 +1,6 @@
 package org.panda.misc.analyses;
 
-import org.panda.causalpath.run.RPPAFrontFace;
+import org.panda.causalpath.run.CausalityAnalysisSingleMethodInterface;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.FileUtil;
 
@@ -106,16 +106,13 @@ public class Aslan
 
 	static void generatePhosphoprotemicsGraph() throws IOException
 	{
-		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", true, 0, 0, true, false, BASE + "network-sitematch-matchProx0-effectProx0", null);
+		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
+			"compatible", true, 0, 0, true, BASE + "network-sitematch-matchProx0-effectProx0", null);
 
-		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", true, 10, 10, true, false, BASE + "network-sitematch-matchProx10-effectProx10", null);
+		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
+			"compatible", true, 10, 10, true, BASE + "network-sitematch-matchProx10-effectProx10", null);
 
-		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", false, 0, 10, true, false, BASE + "network-noSiteMatch-effectProx10", null);
-
-		RPPAFrontFace.generateRPPAGraphs(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", false, 0, 0, true, true, BASE + "network-noSiteMatch-withUnknownEffect", null);
+		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
+			"compatible", false, 0, 10, true, BASE + "network-noSiteMatch-effectProx10", null);
 	}
 }

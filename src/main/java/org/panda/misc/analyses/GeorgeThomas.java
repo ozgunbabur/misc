@@ -1,30 +1,23 @@
 package org.panda.misc.analyses;
 
 import org.biopax.paxtools.pattern.miner.SIFEnum;
-import org.panda.causalpath.analyzer.CausalitySearcher;
-import org.panda.causalpath.analyzer.OneDataChangeDetector;
-import org.panda.causalpath.analyzer.ThresholdDetector;
-import org.panda.causalpath.data.ExperimentData;
-import org.panda.causalpath.data.ProteinData;
-import org.panda.causalpath.network.GraphWriter;
-import org.panda.causalpath.run.RPPAFrontFace;
+import org.panda.causalpath.resource.ProteomicsFileReader;
+import org.panda.causalpath.run.CausalityAnalysisSingleMethodInterface;
 import org.panda.resource.PhosphoSitePlus;
 import org.panda.resource.network.PathwayCommons;
 import org.panda.resource.network.SignedPC;
 import org.panda.resource.signednetwork.SignedType;
-import org.panda.resource.tcga.RPPAData;
-import org.panda.causalpath.resource.RPPAFileReader;
+import org.panda.resource.tcga.ProteomicsFileRow;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
-import org.panda.utility.ValToColor;
 import org.panda.utility.graph.Graph;
 
-import java.awt.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -56,29 +49,29 @@ public class GeorgeThomas
 		int valInd1 = ACHN;
 		int valInd2 = ACHN;
 
-		Set<RPPAData> rppas = new HashSet<>();
+		Set<ProteomicsFileRow> rppas = new HashSet<>();
 		rppas.addAll(convertRPPA(base + "PP_data_Table1_Thomas_Q177800_pY1000_1PC_FDR_121913.csv", valInd1));
 		rppas.addAll(convertRPPA(base + "PP_data_Table2_Thomas_Q177800_Basophillic_1PC_FDR_121913.csv", valInd2));
-		rppas.addAll(readRPPAData(valInd1 == ACHN));
+		rppas.addAll(readProteomicsFileRow(valInd1 == ACHN));
 
 		// Fill-in missing effect from PhosphoSitePlus
 		PhosphoSitePlus.get().fillInMissingEffect(rppas, 10);
 
-		RPPAData mtor = new RPPAData("MTOR-inactivated", null, Arrays.asList("MTOR"), null);
+		ProteomicsFileRow mtor = new ProteomicsFileRow("MTOR-inactivated", null, Arrays.asList("MTOR"), null);
 		mtor.makeActivityNode(true);
 		rppas.add(mtor);
 
-		RPPAFrontFace.generateRPPAGraphs(rppas, 1.5, "compatible", true, 0, true, false, base + "ACHN-compatible-temp2");
+		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(rppas, 1.5, "compatible", true, 0, true, base + "ACHN-compatible-temp2");
 	}
 
-	private static void compareSets(Set<RPPAData>... sets)
+	private static void compareSets(Set<ProteomicsFileRow>... sets)
 	{
 		Set<String>[] ids = new Set[sets.length];
 
 		for (int i = 0; i < ids.length; i++)
 		{
 			ids[i] = new HashSet<>();
-			for (RPPAData data : sets[i])
+			for (ProteomicsFileRow data : sets[i])
 			{
 				ids[i].add(data.id);
 			}
@@ -86,19 +79,19 @@ public class GeorgeThomas
 		CollectionUtil.printVennSets(ids);
 	}
 
-	private static Set<RPPAData> convertRPPA(String inFile, int valindex) throws FileNotFoundException
+	private static Set<ProteomicsFileRow> convertRPPA(String inFile, int valindex) throws FileNotFoundException
 	{
-		Set<RPPAData> set = new HashSet<>();
+		Set<ProteomicsFileRow> set = new HashSet<>();
 		Scanner sc = new Scanner(new File(inFile));
 		while (sc.hasNextLine())
 		{
-			RPPAData data = readLine(sc.nextLine(), valindex);
+			ProteomicsFileRow data = readLine(sc.nextLine(), valindex);
 			if (data != null) set.add(data);
 		}
 		return set;
 	}
 
-	private static RPPAData readLine(String line, int valIndex)
+	private static ProteomicsFileRow readLine(String line, int valIndex)
 	{
 		String[] token = line.split("\t");
 
@@ -175,7 +168,7 @@ public class GeorgeThomas
 			vals = new double[]{foldCh};
 		}
 
-		return new RPPAData(generateID(geneList, siteMap), vals, geneList, siteMap);
+		return new ProteomicsFileRow(generateID(geneList, siteMap), vals, geneList, siteMap);
 	}
 
 	private static String generateID(List<String> genes, Map<String, List<String>> sites)
@@ -214,18 +207,18 @@ public class GeorgeThomas
 		return list;
 	}
 
-	private static Set<RPPAData> readRPPAData(boolean achn) throws FileNotFoundException
+	private static Set<ProteomicsFileRow> readProteomicsFileRow(boolean achn) throws FileNotFoundException
 	{
-		List<RPPAData> datas = RPPAFileReader.readAnnotation(base + "abdata-chibe.txt", "ID1", "Symbols", "Sites", "Effect");
+		List<ProteomicsFileRow> datas = ProteomicsFileReader.readAnnotation(base + "abdata-chibe.txt", "ID1", "Symbols", "Sites", "Effect");
 
-		Map<String, RPPAData> map = new HashMap<>();
-		for (RPPAData data : datas)
+		Map<String, ProteomicsFileRow> map = new HashMap<>();
+		for (ProteomicsFileRow data : datas)
 		{
 			String id = data.id.substring(0, data.id.indexOf("_GBL"));
 			map.put(id, data);
 		}
 
-		Set<RPPAData> set = new HashSet<>();
+		Set<ProteomicsFileRow> set = new HashSet<>();
 		Scanner sc = new Scanner(new File(base + "RPPA_data_Thomas_lab_SR_18Feb2016.csv"));
 		sc.nextLine();
 
@@ -235,7 +228,7 @@ public class GeorgeThomas
 			String id = token[0].replaceAll("-", ".");
 			id = id.substring(0, id.indexOf("_GBL"));
 
-			RPPAData data = map.get(id);
+			ProteomicsFileRow data = map.get(id);
 			if (data == null)
 			{
 				System.out.println("No match found = " + token[0]);

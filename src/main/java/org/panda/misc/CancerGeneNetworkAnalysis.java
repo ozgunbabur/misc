@@ -167,19 +167,19 @@ public class CancerGeneNetworkAnalysis
 			genes.get(gene).add(level != null && !level.isEmpty() ? "OncoKB-actionable" : "OncoKB");
 		}
 
-		Files.lines(Paths.get("/home/babur/Documents/PanCan/pancan.txt")).skip(1).map(l -> l.split("\t"))
-			.filter(t -> Double.parseDouble(t[2]) < 0.1).map(t -> t[0]).forEach(gene ->
-		{
-			if (!genes.containsKey(gene)) genes.put(gene, new HashSet<>());
-			genes.get(gene).add("Mutex");
-		});
-
-		Files.lines(Paths.get("/home/babur/Documents/PanCan/cooc-genes-right.txt")).skip(1).map(l -> l.split("\t"))
-			.filter(t -> Double.parseDouble(t[2]) < 0.1).map(t -> t[0]).forEach(gene ->
-		{
-			if (!genes.containsKey(gene)) genes.put(gene, new HashSet<>());
-			genes.get(gene).add("Cooc");
-		});
+//		Files.lines(Paths.get("/home/babur/Documents/PanCan/pancan.txt")).skip(1).map(l -> l.split("\t"))
+//			.filter(t -> Double.parseDouble(t[2]) < 0.1).map(t -> t[0]).forEach(gene ->
+//		{
+//			if (!genes.containsKey(gene)) genes.put(gene, new HashSet<>());
+//			genes.get(gene).add("Mutex");
+//		});
+//
+//		Files.lines(Paths.get("/home/babur/Documents/PanCan/cooc-genes-right.txt")).skip(1).map(l -> l.split("\t"))
+//			.filter(t -> Double.parseDouble(t[2]) < 0.1).map(t -> t[0]).forEach(gene ->
+//		{
+//			if (!genes.containsKey(gene)) genes.put(gene, new HashSet<>());
+//			genes.get(gene).add("Cooc");
+//		});
 
 		return genes;
 	}
@@ -194,6 +194,11 @@ public class CancerGeneNetworkAnalysis
 	}
 
 	public static void main(String[] args) throws IOException
+	{
+		sikanderRun();
+	}
+
+	private static void sikanderRun() throws IOException
 	{
 		Set<String> sikGenes = Files.lines(Paths.get("/home/babur/Downloads/EUP_protein_variants.txt")).skip(1)
 			.map(l -> l.split(",")).filter(t -> t[3].equals("germline")).map(t -> t[0]).filter(g -> !g.isEmpty())
