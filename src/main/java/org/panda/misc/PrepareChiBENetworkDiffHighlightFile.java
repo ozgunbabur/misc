@@ -1,6 +1,7 @@
 package org.panda.misc;
 
 import org.biopax.paxtools.pattern.miner.SIFEnum;
+import org.panda.utility.graph.DirectedGraph;
 import org.panda.utility.graph.Graph;
 
 import java.io.BufferedWriter;
@@ -18,32 +19,46 @@ public class PrepareChiBENetworkDiffHighlightFile
 {
 	public static void main(String[] args) throws IOException
 	{
-		String base = "/home/babur/Documents/mutex/networks/";
-		Graph g1 = new Graph("PC", "pc-edge");
-		g1.load(base + "PC2v7.sif", Collections.emptySet(), new HashSet<>(Arrays.asList(
+		drawVenn();
+		if (true) return;
+
+		String base = "/media/babur/6TB1/REACH-mutex/network/";
+		DirectedGraph g1 = new DirectedGraph("PC", "pc-edge");
+		g1.load(base + "PC2v8.sif", new HashSet<>(Arrays.asList(
 			SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag(), SIFEnum.CONTROLS_EXPRESSION_OF.getTag())));
-		Graph g2 = new Graph("Fries", "fries-edge");
-		g2.load(base + "fries290K.sif", Collections.emptySet(), new HashSet<>(Arrays.asList(
+		DirectedGraph g2 = new DirectedGraph("Fries", "fries-edge");
+		g2.load(base + "REACH.sif", new HashSet<>(Arrays.asList(
 			SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag(), SIFEnum.CONTROLS_EXPRESSION_OF.getTag())));
 
-		prepare(g1, g2, base + "../../../Projects/chibe/fries-diff-edge-only.highlight");
+		prepare(g1, g2, "/home/babur/Projects/chibe/fries-diff.highlight");
+	}
+
+	public static void drawVenn() throws IOException
+	{
+		String base = "/media/babur/6TB1/REACH-mutex/network/";
+		DirectedGraph g1 = new DirectedGraph("PC", "pc-edge");
+		g1.load(base + "PC2v8.sif", Collections.singleton(SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag()));
+		DirectedGraph g2 = new DirectedGraph("Fries", "fries-edge");
+		g2.load(base + "REACH.sif", Collections.singleton(SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag()));
+
+		g1.printVennIntersections(g2);
 	}
 
 	/**
 	 * Prepares a .highlight file to use in ChiBE sif views. This file highlights the components that exists in the
 	 * second graph but not the first graph.
 	 */
-	public static void prepare(Graph g1, Graph g2, String outFile) throws IOException
+	public static void prepare(DirectedGraph g1, DirectedGraph g2, String outFile) throws IOException
 	{
 		BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));
 
 		Set<String> diffGenes = new HashSet<>(g2.getSymbols());
 		diffGenes.removeAll(g1.getSymbols());
 
-//		for (String gene : diffGenes)
-//		{
-//			writer.write("node\t" + gene + "\n");
-//		}
+		for (String gene : diffGenes)
+		{
+			writer.write("node\t" + gene + "\n");
+		}
 
 		for (String source : g2.getOneSideSymbols(true))
 		{

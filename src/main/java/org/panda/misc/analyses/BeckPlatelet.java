@@ -1,5 +1,6 @@
 package org.panda.misc.analyses;
 
+import org.panda.resource.HGNC;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
@@ -8,8 +9,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * For the analysis of the data int he paper:
@@ -23,7 +23,8 @@ public class BeckPlatelet
 
 	public static void main(String[] args) throws IOException
 	{
-		prepareDataFile();
+//		prepareDataFile();
+		listUnmatchingRelations();
 	}
 
 	public static void prepareDataFile() throws IOException
@@ -33,7 +34,10 @@ public class BeckPlatelet
 		Files.lines(Paths.get(DIR + "TableS3.txt")).skip(2).map(l -> l.split("\t")).filter(t -> !t[2].startsWith("n"))
 			.forEach(t ->
 		{
-			String sym = t[2];
+			String sym = HGNC.get().getSymbol(t[2]);
+
+			if (sym == null) return;
+
 			String[] sites = t[4].split(" or | and | and/or ");
 			Double[] v = new Double[]{Double.valueOf(t[5]), Double.valueOf(t[8]), Double.valueOf(t[11])};
 			for (int i = 0; i < v.length; i++)
@@ -58,6 +62,33 @@ public class BeckPlatelet
 			FileUtil.lnwrite(id + "\t" + sym + "\t" + CollectionUtil.merge(siteList, "|") + "\t\t" +
 				ArrayUtil.getString("\t", v), writer);
 
+		});
+
+		writer.close();
+	}
+
+	private static void listUnmatchingRelations() throws IOException
+	{
+		String dir = DIR + "run-no-site-match/";
+		Map<String, Set<Integer>> observedSites = new HashMap<>();
+		Files.lines(Paths.get(dir + "value-changes.txt")).map(l -> l.split("\t")[0]).forEach(s ->
+		{
+			String[] t = s.split("_");
+			if (!observedSites.containsKey(t[0])) observedSites.put(t[0], new HashSet<>());
+			for (int i = 1; i < t.length; i++)
+			{
+				observedSites.get(t[0]).add(Integer.valueOf(t[i]));
+			}
+		});
+
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(dir + "unmatching.txt"));
+		writer.write("Regulator\tRelation\tTarget\tAffected sites\tObserved sites");
+
+		Files.lines(Paths.get(dir + "causative.sif")).sorted().map(l -> l.split("\t")).forEach(t ->
+		{
+			List<Integer> sites = new ArrayList<>(observedSites.get(t[2]));
+			Collections.sort(sites);
+			FileUtil.lnwrite(ArrayUtil.getString("\t", t[0], t[1], t[2]) + "\t" + (t.length > 4 ? t[4] : "") + "\t" + ArrayUtil.getString(";", sites.toArray()), writer);
 		});
 
 		writer.close();

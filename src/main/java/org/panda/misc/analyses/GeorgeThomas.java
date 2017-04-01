@@ -10,6 +10,7 @@ import org.panda.resource.signednetwork.SignedType;
 import org.panda.resource.tcga.ProteomicsFileRow;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
+import org.panda.utility.graph.DirectedGraph;
 import org.panda.utility.graph.Graph;
 
 import java.io.File;
@@ -61,7 +62,8 @@ public class GeorgeThomas
 		mtor.makeActivityNode(true);
 		rppas.add(mtor);
 
-		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(rppas, 1.5, "compatible", true, 0, true, base + "ACHN-compatible-temp2");
+		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(rppas, 1.5, "compatible", true, 0, true, 1,
+			base + "ACHN-compatible-temp2");
 	}
 
 	private static void compareSets(Set<ProteomicsFileRow>... sets)
@@ -273,17 +275,17 @@ public class GeorgeThomas
 		System.out.println("posCnt = " + posCnt);
 		System.out.println("negCnt = " + negCnt);
 
-		Graph graph = PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF);
+		DirectedGraph graph = (DirectedGraph) PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF);
 		Map<String, Double> select = rnaseq.keySet().stream().filter(k -> Math.abs(rnaseq.get(k)) >= thr)
 			.collect(Collectors.toMap(k -> k, rnaseq::get));
 
 		List<String> enriched = graph.getEnrichedGenes(
-			select.keySet(), rnaseq.keySet(), 0.1, Graph.NeighborType.DOWNSTREAM, 1, 5);
+			select.keySet(), rnaseq.keySet(), 0.1, DirectedGraph.NeighborType.DOWNSTREAM, 1, 5);
 
 		System.out.println("enriched = " + enriched);
 
-		Graph upGraph = SignedPC.get().getGraph(SignedType.UPREGULATES_EXPRESSION);
-		Graph dwGraph = SignedPC.get().getGraph(SignedType.DOWNREGULATES_EXPRESSION);
+		DirectedGraph upGraph = SignedPC.get().getGraph(SignedType.UPREGULATES_EXPRESSION);
+		DirectedGraph dwGraph = SignedPC.get().getGraph(SignedType.DOWNREGULATES_EXPRESSION);
 
 		for (String gene : enriched)
 		{

@@ -6,6 +6,7 @@ import org.panda.misc.MutexReader.*;
 import org.panda.resource.network.PathwayCommons;
 import org.panda.utility.FileUtil;
 import org.panda.utility.ValToColor;
+import org.panda.utility.graph.DirectedGraph;
 import org.panda.utility.graph.Graph;
 
 import java.awt.*;
@@ -40,7 +41,7 @@ public class MutexToGraphAligner
 	public static final ValToColor pvalVTC = new ValToColor(range, new Color[]{Color.WHITE, Color.BLACK});
 	public static final ValToColor covVTC = new ValToColor(new double[]{0, 0.2}, new Color[]{Color.WHITE, Color.RED});
 
-	static void writeNetworkSupportingMutexResults(Set<Group> results, double scoreThr, List<Graph> graphs,
+	static void writeNetworkSupportingMutexResults(Set<Group> results, double scoreThr, List<DirectedGraph> graphs,
 		String sifFileNameWithoutExtension) throws IOException
 	{
 		Map<Pair, Double> pairMap = preparePairMap(results);
@@ -57,7 +58,7 @@ public class MutexToGraphAligner
 
 		pairMap.keySet().stream().filter(pair -> pairMap.get(pair) <= scoreThr).forEach(pair ->
 		{
-			for (Graph graph : graphs)
+			for (DirectedGraph graph : graphs)
 			{
 				if (graph.isDirected())
 				{
@@ -137,15 +138,15 @@ public class MutexToGraphAligner
 		edgesSoFar.add(pair);
 	}
 
-	static List<Graph> loadGraphs()
+	static List<DirectedGraph> loadGraphs()
 	{
-		List<Graph> graphs = new ArrayList<>();
-		Graph csc = PathwayCommons.get().getGraph(SIFEnum.CONTROLS_STATE_CHANGE_OF);
+		List<DirectedGraph> graphs = new ArrayList<>();
+		DirectedGraph csc = (DirectedGraph) PathwayCommons.get().getGraph(SIFEnum.CONTROLS_STATE_CHANGE_OF);
 //		Graph g = new Graph("Reach", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
 //		g.load("/home/babur/Documents/mutex/networks/REACH.sif", Collections.emptySet(), Collections.singleton(g.getEdgeType()));
 //		csc.merge(g);
 		graphs.add(csc);
-//		graphs.add(PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF));
+		graphs.add((DirectedGraph) PathwayCommons.get().getGraph(SIFEnum.CONTROLS_EXPRESSION_OF));
 
 //		Graph ppi = PathwayCommons.get().getGraph(SIFEnum.IN_COMPLEX_WITH);
 //		ppi.merge(PathwayCommons.get().getGraph(SIFEnum.INTERACTS_WITH));
@@ -246,7 +247,7 @@ public class MutexToGraphAligner
 
 	public static void main(String[] args) throws IOException
 	{
-		String base = "/home/babur/Documents/PanCan/tissue-unnormalized-results/";
+		String base = "/home/babur/Documents/PanCan/";
 		Object[] o = PanCanResultLoader.readGroupsWithFlattenedControl(true, base + "PanCan-results",
 			base + "PanCan-shuffled-?-results", f -> useDir(f.getName()));
 		Set<Group> groups = (Set<Group>) o[0];
@@ -254,7 +255,7 @@ public class MutexToGraphAligner
 //		MutexReader.readMutexResultsRecursive(base + "PanCan-results", new HashSet<>(),
 //			f -> useDir(f.getName()));
 
-		writeNetworkSupportingMutexResults(groups, 0.1971, loadGraphs(), base + "aligned-network-PCcsc");
+		writeNetworkSupportingMutexResults(groups, 0.1475, loadGraphs(), base + "aligned-network-PC");
 //		writeInSameGroupNetwork(groups, 0.01, base + "mutex-pairings");
 	}
 

@@ -107,12 +107,12 @@ public class Aslan
 	static void generatePhosphoprotemicsGraph() throws IOException
 	{
 		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", true, 0, 0, true, BASE + "network-sitematch-matchProx0-effectProx0", null);
+			"compatible", true, 0, 0, true, 1, BASE + "network-sitematch-matchProx0-effectProx0", null);
 
 		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", true, 10, 10, true, BASE + "network-sitematch-matchProx10-effectProx10", null);
+			"compatible", true, 10, 10, true, 1, BASE + "network-sitematch-matchProx10-effectProx10", null);
 
 		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", false, 0, 10, true, BASE + "network-noSiteMatch-effectProx10", null);
+			"compatible", false, 0, 10, true, 1, BASE + "network-noSiteMatch-effectProx10", null);
 	}
 }

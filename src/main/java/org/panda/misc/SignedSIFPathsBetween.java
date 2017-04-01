@@ -3,6 +3,7 @@ package org.panda.misc;
 import org.panda.resource.network.SignedPC;
 import org.panda.resource.signednetwork.SignedType;
 import org.panda.utility.CollectionUtil;
+import org.panda.utility.graph.DirectedGraph;
 import org.panda.utility.graph.Graph;
 import org.panda.utility.graph.PhosphoGraph;
 
@@ -23,13 +24,13 @@ public class SignedSIFPathsBetween
 {
 	public static void query(Set<String> genes, String outFile) throws IOException
 	{
-		Map<SignedType, Graph> graphs = SignedPC.get().getAllGraphs();
+		Map<SignedType, DirectedGraph> graphs = SignedPC.get().getAllGraphs();
 
 		BufferedWriter writer = Files.newBufferedWriter(Paths.get(outFile));
 
 		for (SignedType type : graphs.keySet())
 		{
-			Graph graph = graphs.get(type);
+			DirectedGraph graph = graphs.get(type);
 
 			for (String source : genes)
 			{

@@ -8,6 +8,7 @@ import org.panda.resource.OncoKB;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.statistics.FDR;
+import org.panda.utility.statistics.Histogram;
 import org.panda.utility.statistics.Summary;
 
 import java.io.BufferedWriter;
@@ -36,7 +37,7 @@ public class PanCanResultLoader
 
 		Object[] o = readGroupsWithFlattenedControl(true,
 			base + "PanCan-results", base + "PanCan-shuffled-?-results",
-			f -> !PanCanROC.hasNameOverThan(f.getName(), 3) &&
+			f -> !PanCanROC.hasNameOverThan(f.getName(), 30) &&
 				!(f.getName().startsWith("r") || f.getName().startsWith("PC")));
 
 		Set<MutexReader.Group> groups = (Set<MutexReader.Group>) o[0];
@@ -55,7 +56,7 @@ public class PanCanResultLoader
 		set.retainAll(cancerGenes);
 		System.out.println("known cancer genes = " + set.size());
 
-		writeRankedGenes(groups, rand, iter, base + "pancan-3.txt");
+		writeRankedGenes(groups, rand, iter, base + "pancan-2.txt");
 	}
 
 	public static Set<String> readCancerGenes()
@@ -181,6 +182,23 @@ public class PanCanResultLoader
 
 		Set<MutexReader.Group> groups = mutex ? MutexReader.readMutexResults(dir) : MutexReader.readCoocResults(dir);
 		Set<MutexReader.Group> test = groups.stream().peek(g -> g.score /= minNoise).collect(Collectors.toSet());
+
+		//--- DEBUG
+//		if (dir.endsWith("27/21/fries290K-PC2v8") || dir.endsWith("27/5/fries290K-PC2v8"))
+//		{
+//			System.out.println("dir = " + dir);
+//			Histogram h1 = new Histogram(0.05);
+//			sets.stream().flatMap(Collection::stream).forEach(g -> h1.count(g.getScore()));
+//
+//			Histogram h2 = new Histogram(0.05);
+//			test.stream().forEach(g -> h2.count(g.getScore() * minNoise));
+//
+//			h1.printTogether(h2);
+//		}
+
+//		long overNoise = test.stream().filter(g -> g.score < 1).count();
+//		System.out.println(dir.substring(dir.indexOf("/PanCan-results/") + 16) + "\t" + minNoise + "\t" + overNoise);
+		//--- DEBUG
 
 		sets.stream().forEach(s -> s.stream().forEach(g -> g.score /= minNoise));
 		return new Object[]{test, sets};

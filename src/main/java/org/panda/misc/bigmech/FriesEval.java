@@ -93,15 +93,15 @@ public class FriesEval
 	{
 		Set<String> skip = new HashSet<>(Arrays.asList("UVM-keep", "PanCan", "networks"));
 
-//		List<String> use = Arrays.asList("no-network", "PC2v8", "REACH-PC2v8");
+		List<String> use = Arrays.asList("no-network", "PC2v8", "REACH-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "REACH-PC2v8", "TR-REACH-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "PC2v8", "TR-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.1-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.3-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.5-PC2v8");
-		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L1.0-PC2v8");
+//		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L1.0-PC2v8");
 
-		for (File dir : new File("/home/babur/Documents/DARPA/BigMech/mutex").listFiles())
+		for (File dir : new File("/media/babur/6TB1/REACH-mutex/run").listFiles())
 		{
 			if (!dir.isDirectory() || skip.contains(dir.getName())) continue;
 

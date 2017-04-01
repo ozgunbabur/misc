@@ -3,6 +3,7 @@ package org.panda.misc.analyses;
 import org.biopax.paxtools.pattern.miner.SIFEnum;
 import org.panda.misc.MutexReader;
 import org.panda.misc.MutexReader.*;
+import org.panda.utility.graph.DirectedGraph;
 import org.panda.utility.graph.Graph;
 
 import java.util.Collections;
@@ -23,13 +24,13 @@ public class ReactomeHelp
 
 	static void printDifferentialEdgesAndPMCIDs()
 	{
-		Graph reach = new Graph("REACH", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
+		DirectedGraph reach = new DirectedGraph("REACH", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
 		reach.load("/home/babur/Documents/DARPA/BigMech/mutex/networks/REACH.sif",
-			Collections.emptySet(), Collections.singleton(reach.getEdgeType()));
+			Collections.singleton(reach.getEdgeType()));
 
-		Graph pc = new Graph("PC", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
+		DirectedGraph pc = new DirectedGraph("PC", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
 		pc.load("/home/babur/Documents/DARPA/BigMech/mutex/networks/PC2v8.sif",
-			Collections.emptySet(), Collections.singleton(reach.getEdgeType()));
+			Collections.singleton(reach.getEdgeType()));
 
 		Set<String> remember = new HashSet<>();
 

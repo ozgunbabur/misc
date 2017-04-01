@@ -3,6 +3,7 @@ package org.panda.misc.pancan;
 import org.panda.misc.MutexReader;
 import org.panda.resource.CancerGeneBushman;
 import org.panda.resource.CancerGeneCensus;
+import org.panda.resource.OncoKB;
 import org.panda.utility.FileUtil;
 import org.panda.utility.Progress;
 import org.panda.utility.statistics.FDR;
@@ -22,10 +23,10 @@ public class MutexResultAggregator
 {
 	public static void main(String[] args) throws IOException
 	{
-		printGroupsOf("/home/babur/Documents/PanCan/PanCan-results/", "TPTE", 0.05);
+//		printGroupsOf("/home/babur/Documents/PanCan/PanCan-results/", "TG", 0.1);
 
-//		int maxDiv = 21;
-//		prepareGeneRanking("/home/babur/Documents/PanCan/PanCan-results/", "/home/babur/Documents/PanCan/pancan.txt", maxDiv); System.out.println("---");
+		int maxDiv = 30;
+		prepareGeneRanking("/home/babur/Documents/PanCan/tissue-unnormalized-results/PanCan-results/", "/home/babur/Documents/PanCan/tissue-unnormalized-results/pancan-2.txt", maxDiv); System.out.println("---");
 //		prepareGeneRanking("/home/babur/Documents/PanCan/PanCan-shuffled-1-results/", "/home/babur/Documents/PanCan/pancan-shuffled.txt", maxDiv);
 
 //		checkSignalToNoise();
@@ -65,7 +66,7 @@ public class MutexResultAggregator
 	{
 		Set<MutexReader.Group> results = MutexReader.readMutexResultsRecursive(dir, new HashSet<>(), f -> !hasNameOverThan(f.getName(), divThr));
 		Set<String> canGen = new HashSet<>(CancerGeneCensus.get().getAllSymbols());
-		canGen.addAll(CancerGeneBushman.get().getAllSymbols());
+		canGen.addAll(OncoKB.get().getAllSymbols());
 
 		Map<String, Double> scoreMap = new HashMap<>();
 		Map<String, String> locMap = new HashMap<>();

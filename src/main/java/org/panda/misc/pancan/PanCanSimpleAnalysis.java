@@ -4,6 +4,9 @@ import org.panda.utility.Progress;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -14,9 +17,16 @@ public class PanCanSimpleAnalysis
 {
 	public static final int ITERATION = 100000;
 
-	public static void main(String[] args) throws FileNotFoundException
+	public static void main(String[] args) throws IOException
 	{
-		findGenesOverlapWithSilentSamples();
+		prinCGSizeInResults();
+//		findGenesOverlapWithSilentSamples();
+	}
+
+	public static void prinCGSizeInResults() throws IOException
+	{
+		long x = Files.lines(Paths.get("/home/babur/Documents/PanCan/pancan.txt")).skip(1).limit(100).filter(l -> l.split("\t")[1].equals("X")).count();
+		System.out.println("x = " + x);
 	}
 
 	private static void findGenesOverlapWithSilentSamples() throws FileNotFoundException
