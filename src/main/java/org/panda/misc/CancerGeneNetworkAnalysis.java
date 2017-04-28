@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 /**
  * Written to help Sikander's mom and potentially many other cancer patients who got their tumors sequenced.
  *
+ * @deprecated see the new project cancer-network under PathwayAndDataAnalysis in GitHub
  * @author Ozgun Babur
  */
 public class CancerGeneNetworkAnalysis
