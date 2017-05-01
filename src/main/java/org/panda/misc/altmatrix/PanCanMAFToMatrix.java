@@ -23,9 +23,9 @@ public class PanCanMAFToMatrix
 {
 	public static void main(String[] args) throws IOException
 	{
-//		convertToMatrix();
+		convertToMatrix();
 //		convertToMatrixWithSelectMutations();
-		separateToChunks();
+//		separateToChunks();
 	}
 
 
