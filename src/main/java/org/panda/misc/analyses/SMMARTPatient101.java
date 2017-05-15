@@ -1,10 +1,11 @@
 package org.panda.misc.analyses;
 
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.panda.utility.FileUtil;
-import org.panda.utility.statistics.BoxPlot;
-import org.panda.utility.statistics.Histogram;
-import org.panda.utility.statistics.Summary;
-import org.panda.utility.statistics.UniformityChecker;
+import org.panda.utility.Tuple;
+import org.panda.utility.statistics.*;
+import org.panda.utility.statistics.trendline.PolyTrendLine;
+import org.panda.utility.statistics.trendline.TrendLine;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -22,6 +23,7 @@ public class SMMARTPatient101
 	public static final String DIR = "/home/babur/Documents/Analyses/BRCA-RPPA-from-MA/";
 	public static final String RUNS_DIR = DIR + "sample-runs/";
 	public static final String PATIENT_DIR = "/home/babur/Documents/Analyses/SMMART/Patient1/";
+	public static final String RPPAFile = "RPPA/Sample1/01_Gray_Johnson_Set131.txt";
 
 	public static void main(String[] args) throws IOException
 	{
@@ -50,7 +52,7 @@ public class SMMARTPatient101
 		{
 			Files.createDirectory(Paths.get(RUNS_DIR + sample));
 			writeParametersFile(RUNS_DIR + sample + "/parameters.txt");
-			writeSampleData(getZScores(map, samples.get(sample)), RUNS_DIR + sample + "/values.txt");
+			writeSampleData(ZScore.get(map, samples.get(sample)), RUNS_DIR + sample + "/values.txt");
 		}
 	}
 
@@ -113,25 +115,6 @@ public class SMMARTPatient101
 		}
 	}
 
-	static Map<String, Double> getZScores(Map<String, List<Double>> distMap, Map<String, Double> sample)
-	{
-		Map<String, Double> z = new HashMap<>();
-
-		for (String id : sample.keySet())
-		{
-			List<Double> dist = distMap.get(id);
-			if (dist == null) continue;
-
-			double mean = Summary.meanOfDoubles(dist);
-			double sd = Summary.stdev(dist.toArray(new Double[dist.size()]));
-
-			Double actual = sample.get(id);
-
-			z.put(id, (actual - mean) / sd);
-		}
-
-		return z;
-	}
 
 	static void writeSampleData(Map<String, Double> sample, String filename) throws IOException
 	{
@@ -264,37 +247,153 @@ public class SMMARTPatient101
 
 	static void writeSample1InZScores() throws IOException
 	{
+		// Load TCGA distributions
 		Map<String, List<Double>> distMap = loadDistributions();
 
-		String idLine = Files.lines(Paths.get(PATIENT_DIR + "RPPA/Sample1/01_Gray_Johnson_Set131.txt")).skip(1).findFirst().get().trim();
-		String valLine = Files.lines(Paths.get(PATIENT_DIR + "RPPA/Sample1/01_Gray_Johnson_Set131.txt")).skip(11).findFirst().get().trim();
+		// Load Patient 101 RPPA data
+
+		String idLine = Files.lines(Paths.get(PATIENT_DIR + RPPAFile)).skip(1).findFirst().get().trim();
+		String valLine = Files.lines(Paths.get(PATIENT_DIR + RPPAFile)).skip(11).findFirst().get().trim();
 
 		idLine = idLine.substring(idLine.indexOf("\t") + 1);
 		valLine = valLine.substring(valLine.indexOf("Human Tissue") + 13);
 
-		String[] ids = idLine.substring(idLine.indexOf("\t") + 1).split("\t");
-		Double[] values = Arrays.stream(valLine.substring(valLine.indexOf("\t") + 1).split("\t")).map(s -> Double.valueOf(s)).collect(Collectors.toList()).toArray(new Double[0]);
+		String[] ids = idLine.split("\t");
+		Double[] values = Arrays.stream(valLine.split("\t")).map(s -> Double.valueOf(s)).collect(Collectors.toList()).toArray(new Double[0]);
 
-		Map<String, String> id2tcga = new HashMap<>();
-		Files.lines(Paths.get(PATIENT_DIR + "RPPA/Sample1/platform.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
+		assert ids.length == values.length;
+
+		// Load RPPA data in the same batch with the patient sample
+		Double[][] xMatrix = new Double[10][];
+		for (int i = 0; i < xMatrix.length; i++)
 		{
-			id2tcga.put(t[1], t[0]);
+			String s = Files.lines(Paths.get(PATIENT_DIR + RPPAFile)).skip(12 + i).findFirst().get().trim();
+			s = s.substring(s.indexOf("Human Tissue") + 13);
+			xMatrix[i] = Arrays.stream(s.split("\t")).map(ss -> Double.valueOf(ss)).collect(Collectors.toList()).toArray(new Double[0]);
+		}
+
+		// Read id mapping between the patient platform and TCGA platform
+		Map<String, String> id2tcga = new HashMap<>();
+		Files.lines(Paths.get(PATIENT_DIR + "RPPA/Sample1/platform.txt")).skip(1).map(l -> l.split("\t")).filter(t -> t.length < 6 || !t[5].equals("new!")).forEach(t ->
+			id2tcga.put(t[1], t[0]));
+		Map<String, String> tcga2id = id2tcga.keySet().stream().collect(Collectors.toMap(id2tcga::get, id -> id));
+
+
+		// Read TCGA Sample IDs in the patient batch
+		List<String> sampleIDs = Files.lines(Paths.get(PATIENT_DIR + RPPAFile)).skip(12).map(l -> l.split("\t")[7])
+			.collect(Collectors.toList());
+
+		Set<String> sampleIDSet = new HashSet<>(sampleIDs);
+		List<String> idsList = Arrays.asList(ids);
+		Double[][] yMatrix = new Double[xMatrix.length][xMatrix[0].length];
+
+		// Load corresponding RPPA data from TCGA
+		String[] header = Files.lines(Paths.get(DIR + "TCGA-BRCA-L4.csv")).findFirst().get().split(",");
+		Files.lines(Paths.get(DIR + "TCGA-BRCA-L4.csv")).skip(1).map(l -> l.split(",")).filter(t -> sampleIDSet.contains(t[0])).forEach(t ->
+		{
+			int sInd = sampleIDs.indexOf(t[0]);
+			for (int i = 4; i < t.length; i++)
+			{
+				int aInd = idsList.indexOf(tcga2id.get(header[i]));
+				if (aInd >= 0)
+				{
+					if (t[i].equals("NA")) t[i] = "NaN";
+					Double v = Double.valueOf(t[i]);
+					yMatrix[sInd][aInd] = v;
+				}
+			}
 		});
+
+//		// Print TCGA and SMMART RPPA Venn sets
+//		Set<String> tcga_set = new HashSet<>(Arrays.asList(header).subList(4, Arrays.asList(header).size()));
+//		Set<String> patient_set = new HashSet<>(idsList);
+//		CollectionUtil.printNameMapping("Patient", "TCGA");
+//		CollectionUtil.printVennSets(patient_set, tcga_set, tcga2id);
+
+		for (String id : ids)
+		{
+			int abInd = idsList.indexOf(id);
+
+			if (id2tcga.containsKey(id))
+			{
+				TrendLine trendLine = getTheTrendLine(xMatrix, yMatrix, abInd, id);
+				values[abInd] = trendLine.predict(values[abInd]);
+				distMap.put(id, distMap.get(id2tcga.get(id)));
+			}
+			else
+			{
+				List<Double> list = new ArrayList<>();
+				for (Double[] row : xMatrix)
+				{
+					list.add(row[abInd]);
+				}
+				distMap.put(id, list);
+			}
+		}
+
+		hist.plot();
 
 		Map<String, Double> vals = new HashMap<>();
 		for (int i = 0; i < ids.length; i++)
 		{
-			vals.put(id2tcga.get(ids[i]), values[i]);
+			vals.put(ids[i], values[i]);
 		}
 
-		Map<String, Double> zScores = getZScores(distMap, vals);
+		Map<String, Double> zScores = ZScore.get(distMap, vals);
 
 		BufferedWriter writer = Files.newBufferedWriter(Paths.get(PATIENT_DIR + "RPPA/Sample1/values.txt"));
-		writer.write("ID-tcga\tValue");
+		writer.write("ID\tValue");
 		for (String id : zScores.keySet())
 		{
 			writer.write("\n" + id + "\t" + zScores.get(id));
 		}
 		writer.close();
+	}
+
+	static Histogram2D hist = new Histogram2D(0.01);
+
+	static TrendLine getTheTrendLine(Double[][] xMatrix, Double[][] yMatrix, int abInd, String name)
+	{
+		double[] x = new double[xMatrix.length];
+		double[] y = new double[x.length];
+
+//		System.out.println("name = " + name);
+		for (int i = 0; i < xMatrix.length; i++)
+		{
+			x[i] = xMatrix[i][abInd];
+			y[i] = yMatrix[i][abInd];
+
+//			System.out.println(xMatrix[i][abInd] + "\t" + yMatrix[i][abInd]);
+		}
+
+		Tuple corr = Correlation.pearson(x, y);
+
+		if (corr.v < 0.5 || corr.p > 0.05)
+		{
+			double mX = Summary.mean(x);
+			double mY = Summary.mean(y);
+
+			hist.count(mX, mY);
+			return new TrendLine()
+			{
+				@Override
+				public void setValues(double[] y, double[] x)
+				{
+
+				}
+
+				@Override
+				public double predict(double x)
+				{
+					return x + (mY - mX);
+				}
+			};
+		}
+		else
+		{
+			PolyTrendLine ptl = new PolyTrendLine(1);
+			ptl.setValues(y, x);
+			return ptl;
+		}
 	}
 }
