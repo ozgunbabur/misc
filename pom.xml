@@ -43,14 +43,14 @@
 					<artifactId>maven-assembly-plugin</artifactId>
 					<version>2.2-beta-5</version>
 					<configuration>
-						<finalName>mutex</finalName>
+						<finalName>misc</finalName>
 						<appendAssemblyId>false</appendAssemblyId>
 						<descriptorRefs>
 							<descriptorRef>jar-with-dependencies</descriptorRef>
 						</descriptorRefs>
 						<archive>
 							<manifest>
-								<mainClass>org.panda.misc.XXX</mainClass>
+								<mainClass>org.panda.misc.altmatrix.PanCanMAFToMatrix</mainClass>
 								<addClasspath>true</addClasspath>
 							</manifest>
 						</archive>
