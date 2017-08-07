@@ -1,6 +1,6 @@
 package org.panda.misc.analyses;
 
-import org.panda.causalpath.run.Main;
+import org.panda.causalpath.run.CausalPath;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.statistics.Histogram;
@@ -81,7 +81,7 @@ public class PNNLProteomics
 				s, writer));
 
 		writer.close();
-		Main.main(new String[]{subDir});
+		CausalPath.main(new String[]{subDir});
 	}
 
 	public static void prepareOldVersusYoung() throws IOException
@@ -105,7 +105,7 @@ public class PNNLProteomics
 				s, writer));
 
 		writer.close();
-		Main.main(new String[]{subDir});
+		CausalPath.main(new String[]{subDir});
 	}
 
 	public static void preparePlainumStatus() throws IOException
@@ -124,7 +124,7 @@ public class PNNLProteomics
 				s, writer));
 
 		writer.close();
-		Main.main(new String[]{subDir});
+		CausalPath.main(new String[]{subDir});
 	}
 
 	public static void prepareSubtypeFolders(String SUBTYPES_FILE, String prefix) throws IOException
@@ -156,7 +156,7 @@ public class PNNLProteomics
 			writer.close();
 
 			System.out.println("\ntype = " + type);
-			Main.main(new String[]{subDir});
+			CausalPath.main(new String[]{subDir});
 		}
 	}
 

@@ -91,9 +91,9 @@ public class FriesEval
 
 	private static void printVennAllOneByOne() throws FileNotFoundException
 	{
-		Set<String> skip = new HashSet<>(Arrays.asList("UVM-keep", "PanCan", "networks"));
+		Set<String> skip = new HashSet<>(Arrays.asList("UVM-keep", "PanCan", "networks", "REACH-PC2v8"));
 
-		List<String> use = Arrays.asList("no-network", "PC2v8", "REACH-PC2v8");
+		List<String> use = Arrays.asList("REACHred-PC2v8", "no-network", "PC2v8");
 //		List<String> use = Arrays.asList("no-network", "REACH-PC2v8", "TR-REACH-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "PC2v8", "TR-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.1-PC2v8");
@@ -101,7 +101,7 @@ public class FriesEval
 //		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L0.5-PC2v8");
 //		List<String> use = Arrays.asList("no-network", "TR-REACH-PC2v8", "L1.0-PC2v8");
 
-		for (File dir : new File("/media/babur/6TB1/REACH-mutex/run").listFiles())
+		for (File dir : new File("/home/babur/Documents/DARPA/BigMech/REACH-mutex/run").listFiles())
 		{
 			if (!dir.isDirectory() || skip.contains(dir.getName())) continue;
 
@@ -146,10 +146,102 @@ public class FriesEval
 	}
 
 
+	/**
+	 * First, run printVennAllOneByOne and dump the text output into a temp.txt file.
+	 */
+	private static void convertDetailedOutputToLatexTable() throws FileNotFoundException
+	{
+		Map<String, int[]> map = new HashMap<>();
+
+		Scanner sc = new Scanner(new File("/home/babur/Documents/Temp/temp2.txt"));
+
+		String line = sc.nextLine();
+		while (sc.hasNextLine())
+		{
+			if (line.startsWith("Cancer type:"))
+			{
+				String type = line.substring(line.lastIndexOf(" ") + 1);
+				int[] v = new int[7];
+
+				for (int i = 0; i < 10; i++)
+				{
+					line = sc.nextLine();
+
+					if (i > 2)
+					{
+						v[i - 3] = Integer.valueOf(line.split("\t")[1]);
+					}
+				}
+				map.put(type, v);
+			}
+
+			if (sc.hasNextLine()) line = sc.nextLine();
+		}
+
+		sc.close();
+
+		map.keySet().stream().sorted().forEach(type ->
+		{
+			System.out.print(" \\\\ \\hline\n" + type);
+
+			for (int i : map.get(type))
+			{
+				System.out.print(" & " + i);
+			}
+		});
+	}
+
+	/**
+	 * First, run printVennAllOneByOne and dump the text output into a temp.txt file.
+	 */
+	private static void convertDetailedOutputToLatexTable2() throws FileNotFoundException
+	{
+		Map<String, int[]> map = new HashMap<>();
+
+		Scanner sc = new Scanner(new File("/home/babur/Documents/Temp/temp2.txt"));
+
+		String line = sc.nextLine();
+		while (sc.hasNextLine())
+		{
+			if (line.startsWith("Cancer type:"))
+			{
+				String type = line.substring(line.lastIndexOf(" ") + 1);
+				int[] v = new int[7];
+
+				for (int i = 0; i < 10; i++)
+				{
+					line = sc.nextLine();
+
+					if (i > 2)
+					{
+						v[i - 3] = Integer.valueOf(line.split("\t")[1]);
+					}
+				}
+				map.put(type, v);
+			}
+
+			if (sc.hasNextLine()) line = sc.nextLine();
+		}
+
+		sc.close();
+
+		map.keySet().stream().sorted().forEach(type ->
+		{
+			System.out.print(" \\\\ \\hline\n" + type);
+
+			int[] v = map.get(type);
+			System.out.print(" & " + (v[0] + v[3] + v[4] + v[6]));
+			System.out.print(" & " + (v[2] + v[4] + v[5] + v[6]));
+			System.out.print(" & " + (v[1] + v[3] + v[5] + v[6]));
+			System.out.print(" & " + (v[0]));
+			System.out.print(" & " + (v[3]));
+		});
+	}
 
 	public static void main(String[] args) throws FileNotFoundException
 	{
-		printVennAllOneByOne();
+//		printVennAllOneByOne();
+		convertDetailedOutputToLatexTable2();
 
 //		System.out.print("\nF / P : ");
 //		pcCantFind.stream().sorted().peek(g -> System.out.print(" ")).forEach(System.out::print);

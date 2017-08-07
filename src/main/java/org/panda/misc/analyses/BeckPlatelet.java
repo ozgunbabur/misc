@@ -4,12 +4,16 @@ import org.panda.resource.HGNC;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
+import org.panda.utility.ValToColor;
 
+import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.List;
 
 /**
  * For the analysis of the data int he paper:
@@ -24,7 +28,8 @@ public class BeckPlatelet
 	public static void main(String[] args) throws IOException
 	{
 //		prepareDataFile();
-		listUnmatchingRelations();
+//		listUnmatchingRelations();
+		printDifferentialGeneNames();
 	}
 
 	public static void prepareDataFile() throws IOException
@@ -91,6 +96,21 @@ public class BeckPlatelet
 			FileUtil.lnwrite(ArrayUtil.getString("\t", t[0], t[1], t[2]) + "\t" + (t.length > 4 ? t[4] : "") + "\t" + ArrayUtil.getString(";", sites.toArray()), writer);
 		});
 
+		writer.close();
+	}
+
+	private static void printDifferentialGeneNames() throws IOException
+	{
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(DIR + "for-ppi.format"));
+		ValToColor vtc = new ValToColor(new double[]{-10, 0, 10}, new Color[]{Color.BLUE, Color.WHITE, Color.RED});
+		Files.lines(Paths.get(DIR + "data.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			Double v = Double.valueOf(t[4]);
+			if (Math.abs(Double.valueOf(t[5])) > Math.abs(v)) v = Double.valueOf(t[5]);
+			if (Math.abs(Double.valueOf(t[6])) > Math.abs(v)) v = Double.valueOf(t[6]);
+
+			FileUtil.writeln("node\t" + t[1] + "\tcolor\t" + vtc.getColorInString(v), writer);
+		});
 		writer.close();
 	}
 }

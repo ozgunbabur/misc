@@ -29,7 +29,8 @@ public class Aslan
 	public static void main(String[] args) throws IOException
 	{
 //		convertPhosphoproteomics();
-		generatePhosphoprotemicsGraph();
+//		generatePhosphoprotemicsGraph();
+		printUniProtNames();
 	}
 
 	static void convertPhosphoproteomics() throws IOException
@@ -114,5 +115,11 @@ public class Aslan
 
 		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
 			"compatible", false, 0, 10, true, 1, BASE + "network-noSiteMatch-effectProx10", null);
+	}
+
+	static void printUniProtNames() throws IOException
+	{
+		Files.lines(Paths.get("/home/babur/Documents/Analyses/Platelet-paper-2017/from-paper.csv")).skip(5)
+			.map(l -> l.split("\t")[1].split(" ")[0]).forEach(System.out::println);
 	}
 }

@@ -19,7 +19,7 @@ public class ShowRNAseqOnTCGADistribution
 	static final double LOG2 = Math.log(2D);
 	static final int SYM_INDEX = 1;
 	static final int[] VAL_INDEX = new int[]{2, 3, 4};
-	static String[] genes = new String[]{"FGFR1", "FGFR2", "PLCG1", "PLCG2", "PIK3CA", "PIK3R1"};
+	static String[] genes = new String[]{"SPRY1", "SPRY2", "RPTOR", "AKT3", "AKT2", "AKT1", "GADD45A", "MTOR", "PTEN"};
 
 	public static void main(String[] args) throws IOException
 	{

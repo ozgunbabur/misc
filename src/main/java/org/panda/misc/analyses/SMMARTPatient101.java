@@ -1,6 +1,5 @@
 package org.panda.misc.analyses;
 
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.panda.utility.FileUtil;
 import org.panda.utility.Tuple;
 import org.panda.utility.statistics.*;
@@ -24,16 +23,21 @@ public class SMMARTPatient101
 	public static final String RUNS_DIR = DIR + "sample-runs/";
 	public static final String PATIENT_DIR = "/home/babur/Documents/Analyses/SMMART/Patient1/";
 	public static final String RPPAFile = "RPPA/Sample1/01_Gray_Johnson_Set131.txt";
+	public static final String RNA_FILE = "SMMART-101-RNA-seq-rawcounts.txt";
+	public static final String GeneTrails_CNA_FILE = "irb16113_reported_copy_number_by_mrn_Subject_101_deID-CompBio.csv";
 
 	public static void main(String[] args) throws IOException
 	{
+		assessTumorSource();
 //		printUniformityOfGraphSizePvals(RUNS_DIR);
 
 //		mapPlatforms();
-		writeSample1InZScores();
+//		writeSample1InZScores();
+
+//		extractTCGABRCASubtype();
 
 //		prepareCausalPathDirs();
-//		Map<String, List<Double>> map = loadDistributions();
+//		Map<String, List<Double>> map = loadDistributions(DIR + "TCGA-BRCA-L4.csv");
 
 //		int limit = 224;
 //		BoxPlot.write(DIR + "plot.txt",
@@ -45,7 +49,7 @@ public class SMMARTPatient101
 
 	static void prepareCausalPathDirs() throws IOException
 	{
-		Map<String, List<Double>> map = loadDistributions();
+		Map<String, List<Double>> map = loadDistributions(DIR + "TCGA-BRCA-L4.csv");
 		Map<String, Map<String, Double>> samples = loadSampleMaps();
 
 		for (String sample : samples.keySet())
@@ -56,9 +60,9 @@ public class SMMARTPatient101
 		}
 	}
 
-	static Map<String, List<Double>> loadDistributions() throws IOException
+	static Map<String, List<Double>> loadDistributions(String filename) throws IOException
 	{
-		String[] header = Files.lines(Paths.get(DIR + "TCGA-BRCA-L4.csv")).findFirst().get().split(",");
+		String[] header = Files.lines(Paths.get(filename)).findFirst().get().split(",");
 
 		Map<String, List<Double>> map = new HashMap<>();
 
@@ -68,7 +72,7 @@ public class SMMARTPatient101
 		}
 
 
-		Files.lines(Paths.get(DIR + "TCGA-BRCA-L4.csv")).skip(1).map(l -> l.split(",")).forEach(t ->
+		Files.lines(Paths.get(filename)).skip(1).map(l -> l.split(",")).forEach(t ->
 		{
 			for (int i = 4; i < t.length; i++)
 			{
@@ -247,8 +251,10 @@ public class SMMARTPatient101
 
 	static void writeSample1InZScores() throws IOException
 	{
+		String compileDir = PATIENT_DIR + "RPPA/Sample1-compare-Basal/";
+
 		// Load TCGA distributions
-		Map<String, List<Double>> distMap = loadDistributions();
+		Map<String, List<Double>> distMap = loadDistributions(PATIENT_DIR + "RPPA/TCGA-BRCA-Basal.csv");
 
 		// Load Patient 101 RPPA data
 
@@ -274,7 +280,7 @@ public class SMMARTPatient101
 
 		// Read id mapping between the patient platform and TCGA platform
 		Map<String, String> id2tcga = new HashMap<>();
-		Files.lines(Paths.get(PATIENT_DIR + "RPPA/Sample1/platform.txt")).skip(1).map(l -> l.split("\t")).filter(t -> t.length < 6 || !t[5].equals("new!")).forEach(t ->
+		Files.lines(Paths.get(compileDir + "platform.txt")).skip(1).map(l -> l.split("\t")).filter(t -> t.length < 6 || !t[5].equals("new!")).forEach(t ->
 			id2tcga.put(t[1], t[0]));
 		Map<String, String> tcga2id = id2tcga.keySet().stream().collect(Collectors.toMap(id2tcga::get, id -> id));
 
@@ -320,18 +326,18 @@ public class SMMARTPatient101
 				values[abInd] = trendLine.predict(values[abInd]);
 				distMap.put(id, distMap.get(id2tcga.get(id)));
 			}
-			else
-			{
-				List<Double> list = new ArrayList<>();
-				for (Double[] row : xMatrix)
-				{
-					list.add(row[abInd]);
-				}
-				distMap.put(id, list);
-			}
+//			else
+//			{
+//				List<Double> list = new ArrayList<>();
+//				for (Double[] row : xMatrix)
+//				{
+//					list.add(row[abInd]);
+//				}
+//				distMap.put(id, list);
+//			}
 		}
 
-		hist.plot();
+//		hist.plot();
 
 		Map<String, Double> vals = new HashMap<>();
 		for (int i = 0; i < ids.length; i++)
@@ -341,7 +347,7 @@ public class SMMARTPatient101
 
 		Map<String, Double> zScores = ZScore.get(distMap, vals);
 
-		BufferedWriter writer = Files.newBufferedWriter(Paths.get(PATIENT_DIR + "RPPA/Sample1/values.txt"));
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(compileDir + "values.txt"));
 		writer.write("ID\tValue");
 		for (String id : zScores.keySet())
 		{
@@ -395,5 +401,92 @@ public class SMMARTPatient101
 			ptl.setValues(y, x);
 			return ptl;
 		}
+	}
+
+	static void extractTCGABRCASubtype() throws IOException
+	{
+		String subtype = "Basal";
+
+		Set<String> ids = Files.lines(Paths.get(PATIENT_DIR + "RPPA/Tumor-subtypes-for-PanCanPathways-PANCAN.txt"))
+			.skip(1).map(l -> l.split("\t")).filter(t -> t[2].equals("BRCA") && t[3].equals(subtype)).map(t -> t[0])
+			.collect(Collectors.toSet());
+
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(PATIENT_DIR + "RPPA/TCGA-BRCA-" + subtype + ".csv"));
+		writer.write(Files.lines(Paths.get(PATIENT_DIR + "RPPA/TCGA-BRCA-L4.csv")).findFirst().get());
+
+		Files.lines(Paths.get(PATIENT_DIR + "RPPA/TCGA-BRCA-L4.csv")).filter(l -> ids.contains(l.substring(0, 12)))
+			.forEach(l -> FileUtil.lnwrite(l, writer));
+
+		writer.close();
+	}
+
+	/**
+	 * Are they from Primary or Met?
+	 */
+	static void assessTumorSource() throws IOException
+	{
+		//read RNA
+
+		double log2 = Math.log(2);
+		double rThr = 2;
+		double pThr = 2;
+
+		Map<String, Double> rnaMap = new HashMap<>();
+
+		Files.lines(Paths.get(PATIENT_DIR + RNA_FILE)).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			String id = t[1];
+			double diff = (Math.log1p(Integer.valueOf(t[2])) - Math.log1p(Integer.valueOf(t[3]))) / log2;
+
+			if (Math.abs(diff) > rThr) rnaMap.put(id, diff);
+		});
+
+//		rnaMap.keySet().forEach(k -> System.out.println(k + "\t" + rnaMap.get(k)));
+//		System.out.println("\n");
+
+		// evaluate GeneTrails CNA
+
+		Files.lines(Paths.get(PATIENT_DIR + GeneTrails_CNA_FILE)).skip(1).limit(12).map(l -> l.split("\t")).forEach(t ->
+		{
+			String id = t[4];
+			String status = t[8];
+
+			if (rnaMap.containsKey(id))
+			{
+				System.out.println(id + "\t" + status + "\t" + rnaMap.get(id));
+			}
+		});
+
+		System.out.println("\n");
+
+		// evaluate RPPA
+
+		//read platform
+		Map<String, Set<String>> id2genes = new HashMap<>();
+
+		Files.lines(Paths.get(PATIENT_DIR + "RPPA/Sample1/platform.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			String id = t[1];
+			if (id.contains("_p")) return;
+			Set<String> genes = new HashSet<>(Arrays.asList(t[2].split(" ")));
+			id2genes.put(id, genes);
+		});
+
+		Files.lines(Paths.get(PATIENT_DIR + "RPPA/Sample1/values.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			String id = t[0];
+			double val = Double.valueOf(t[1]);
+
+			if (Math.abs(val) > pThr && id2genes.containsKey(id))
+			{
+				for (String gene : id2genes.get(id))
+				{
+					if (rnaMap.containsKey(gene))
+					{
+						System.out.println(gene + "\t" + val + "\t" + rnaMap.get(gene));
+					}
+				}
+			}
+		});
 	}
 }
