@@ -8,52 +8,83 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Ozgun Babur
  */
 public class Aslan
 {
-	public static final String BASE = "/home/babur/Documents/Analyses/Aslan/";
-//	public static final String BASE = "C:\\Users\\Owner\\Documents\\Analyses\\Aslan\\";
-	public static final String PHOS_IN = BASE + "phosphoproteomics.csv";
-	public static final String PHOS_OUT = BASE + "phosphoproteomics.txt";
-	public static final String ACET_IN = BASE + "acetoproteomics.csv";
+	public static final String BASE = "/home/babur/Documents/Analyses/Aslan/second-pass/";
+	public static final String PHOS_IN1 = BASE + "AslanPhosphoSerThrTMT-August2017.csv";
+	public static final String PHOS_IN2 = BASE + "AslanPhosphoTyrosineTMT-June2017.csv";
+	public static final String PHOS_OUT = BASE + "phosphoproteomics-fdr0.2.txt";
 
-	static double qvalThr = 0.1;
+	public static final String OLD_BASE = "/home/babur/Documents/Analyses/Aslan/first-pass/";
+	public static final String OLD_PHOS_IN = OLD_BASE + "phosphoproteomics.csv";
+	public static final String OLD_PHOS_OUT = OLD_BASE + "phosphoproteomics-fdr0.1.txt";
+
+	static final double FDR_THR = 0.1;
 
 	public static void main(String[] args) throws IOException
 	{
-//		convertPhosphoproteomics();
-//		generatePhosphoprotemicsGraph();
-		printUniProtNames();
+//		convertPhosphoproteomics(FDR_THR, PHOS_OUT, PHOS_IN1, PHOS_IN2);
+		convertPhosphoproteomics(FDR_THR, OLD_PHOS_OUT, OLD_PHOS_IN);
+//		printUniProtNames();
 	}
 
-	static void convertPhosphoproteomics() throws IOException
+	static void convertPhosphoproteomics(double fdrThr, String outFile, String... inFile) throws IOException
 	{
-		String[] header = Files.lines(Paths.get(PHOS_IN)).skip(4).findFirst().get().split("\t");
+		Map<String, Holder> map = new HashMap<>();
+		for (String inF : inFile)
+		{
+			readCVSFile(inF, map, fdrThr);
+		}
 
-		int siteInd = ArrayUtil.indexOf(header, "Adjusted Sites");
-		int qvalInd = ArrayUtil.indexOf(header, "FDR");
+
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(outFile));
+		writer.write("ID\tSymbols\tSites\tEffect\tFold change");
+
+		map.values().stream().distinct().forEach(h -> FileUtil.lnwrite(h.toString(), writer));
+
+		writer.close();
+	}
+
+	static void readCVSFile(String file, Map<String, Holder> map, double fdrThr) throws IOException
+	{
+		String[] header = Files.lines(Paths.get(file)).skip(5).findFirst().get().split("\t");
+
+		int siteInd = ArrayUtil.indexOf(header, "protein mod site", "Site List", "Mod Protein Location");
+		int fdrInd = ArrayUtil.indexOf(header, "FDR");
 		int fcInd = ArrayUtil.indexOf(header, "fold change");
 		int logfcInd = ArrayUtil.indexOf(header, "logFC");
-		int descInd = ArrayUtil.indexOf(header, "Protein Descriptions");
+		int geneInd = ArrayUtil.indexOf(header, "Protein Descriptions");
 
-		Map<String, Holder> map = new HashMap<>();
-
-		Files.lines(Paths.get(PHOS_IN)).skip(5).map(l -> l.split("\t"))
-			.filter(t -> Double.parseDouble(t[qvalInd]) < qvalThr).forEach(t ->
+		Files.lines(Paths.get(file)).skip(6).map(l -> l.split("\t"))
+			.filter(t -> Double.parseDouble(t[fdrInd]) < fdrThr).forEach(t ->
 		{
-			String sym = t[descInd];
+			String sym = t[geneInd];
+
+			if (!sym.contains("GN="))
+			{
+				System.err.println("No gene name in protein description: " + sym);
+				return;
+			}
 
 			int start = sym.indexOf("GN=") + 3;
 			sym = sym.substring(start, sym.indexOf(" ", start));
 
+			// there must be a site in this data
+			if (t[siteInd].isEmpty()) return;
+
 			String[] sites = t[siteInd].split("; ");
+
+			// Fix for an error in the old proteomics files
+			for (int i = 0; i < sites.length; i++)
+			{
+				sites[i] = oneDown(sites[i]);
+			}
+
 			double fc = Double.parseDouble(t[fcInd]);
 			if (t[logfcInd].startsWith("-")) fc = -fc;
 
@@ -62,24 +93,19 @@ public class Aslan
 
 			Holder h = new Holder(id, sym, fc);
 
-			for (String site : sites)
+			Collections.addAll(h.sites, sites);
+
+			// check for conflicting data
+			if (map.containsKey(id) && map.get(id).fc * h.fc < 0)
 			{
-				String key = sym + " " + site;
-				if (!map.containsKey(key) || Math.abs(map.get(key).fc) < Math.abs(fc))
-				{
-					map.put(key, h);
-				}
+				System.err.println("Conflicting data for " + id);
+			}
+
+			if (!map.containsKey(id) || Math.abs(map.get(id).fc) < Math.abs(h.fc))
+			{
+				map.put(id, h);
 			}
 		});
-
-		map.keySet().forEach(k -> map.get(k).sites.add(k.substring(k.indexOf(" ") + 1)));
-
-		BufferedWriter writer = Files.newBufferedWriter(Paths.get(PHOS_OUT));
-		writer.write("ID\tSymbols\tSites\tEffect\tFold change");
-
-		map.values().stream().distinct().forEach(h -> FileUtil.lnwrite(h.toString(), writer));
-
-		writer.close();
 	}
 
 	static class Holder
@@ -105,16 +131,12 @@ public class Aslan
 		}
 	}
 
-	static void generatePhosphoprotemicsGraph() throws IOException
+	static String oneDown(String site)
 	{
-		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", true, 0, 0, true, 1, BASE + "network-sitematch-matchProx0-effectProx0", null);
-
-		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", true, 10, 10, true, 1, BASE + "network-sitematch-matchProx10-effectProx10", null);
-
-		CausalityAnalysisSingleMethodInterface.generateCausalityGraph(PHOS_OUT, "ID", "Symbols", "Sites", "Effect", PHOS_OUT, "Fold change", 0,
-			"compatible", false, 0, 10, true, 1, BASE + "network-noSiteMatch-effectProx10", null);
+		String aa = site.substring(0, 1);
+		int num = Integer.valueOf(site.substring(1));
+		num--;
+		return aa + num;
 	}
 
 	static void printUniProtNames() throws IOException

@@ -26,14 +26,10 @@ public class ExciseFromBigModel
 {
 	public static void main(String[] args) throws IOException
 	{
-		String dir = "/home/babur/Documents/DARPA/BigMech/PNNL/";
-		Set<String> ids = collectMediatorIDs(dir + "correlation-based/REACH/causative.sif");
-		ids.addAll(collectMediatorIDs(dir + "subtypes/Subtype-Differentiated/REACH/causative.sif"));
-		ids.addAll(collectMediatorIDs(dir + "subtypes/Subtype-Immunoreactive/REACH/causative.sif"));
-		ids.addAll(collectMediatorIDs(dir + "subtypes/Subtype-Mesenchymal/REACH/causative.sif"));
-		ids.addAll(collectMediatorIDs(dir + "subtypes/Subtype-Proliferative/REACH/causative.sif"));
+		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/BigMech/REACH/";
+		Set<String> ids = collectMediatorIDs(dir + "causative.sif");
 
-		exciseToNewFile(ids, "/home/babur/Documents/Temp/REACH.owl", dir + "model.owl");
+		exciseToNewFile(ids, "/home/babur/Documents/DARPA/BigMech/REACH.owl", dir + "model.owl");
 	}
 
 	static Set<String> collectMediatorIDs(String sifFile) throws IOException

@@ -3,7 +3,7 @@ package org.panda.misc.analyses;
 import org.biopax.paxtools.pattern.miner.SIFEnum;
 import org.panda.causalpath.resource.ProteomicsFileReader;
 import org.panda.causalpath.run.CausalityAnalysisSingleMethodInterface;
-import org.panda.resource.PhosphoSitePlus;
+import org.panda.resource.siteeffect.PhosphoSitePlus;
 import org.panda.resource.network.PathwayCommons;
 import org.panda.resource.network.SignedPC;
 import org.panda.resource.signednetwork.SignedType;
@@ -11,7 +11,6 @@ import org.panda.resource.tcga.ProteomicsFileRow;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.graph.DirectedGraph;
-import org.panda.utility.graph.Graph;
 
 import java.io.File;
 import java.io.FileNotFoundException;
