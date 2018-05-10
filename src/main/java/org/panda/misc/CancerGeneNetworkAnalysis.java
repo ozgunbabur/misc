@@ -320,8 +320,6 @@ public class CancerGeneNetworkAnalysis
 		for (String gene : OncoKB.get().getAllSymbols())
 		{
 			if (!genes.containsKey(gene)) genes.put(gene, new HashSet<>());
-			String level = OncoKB.get().getLevel(gene);
-			genes.get(gene).add(level != null && !level.isEmpty() ? "OncoKB-actionable" : "OncoKB");
 		}
 
 //		Files.lines(Paths.get("/home/babur/Documents/PanCan/pancan.txt")).skip(1).map(l -> l.split("\t"))

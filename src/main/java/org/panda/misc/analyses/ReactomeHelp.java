@@ -33,8 +33,9 @@ public class ReactomeHelp
 //		printRhoGEFRelations();
 //		printRhoGEFRelationsVersion2();
 //		printOverlap();
+		printReactomeRelations();
 
-		printPhosphoRelsTextEvidence();
+//		printPhosphoRelsTextEvidence();
 	}
 
 	static void printDifferentialEdgesAndPMCIDs()
@@ -189,19 +190,26 @@ public class ReactomeHelp
 		Files.lines(Paths.get("/home/babur/Documents/Analyses/Reactome-help/GEF-Rho_Reach_Reactome_Comparison.txt"))
 			.map(l -> l.split("\t")).forEach(t ->
 		{
-			String key = t[0] + t[1];
+			String key = t[0] + " " + t[1];
 			if (t.length > 2 && !t[2].isEmpty() && !t[2].startsWith("N/D")) react.add(key);
 			if (t.length > 3 && !t[3].isEmpty())
 			{
 				reach.add(key);
 
-				if (t[2].startsWith("NO") && !t[2].contains(";")) c[0]++;
+				if (t[2].startsWith("NO") && !t[2].contains(";"))
+				{
+					c[0]++;
+					System.out.println(key);
+				}
 			}
 		});
 
 		CollectionUtil.printNameMapping("Reactome", "Reach");
 		CollectionUtil.printVennCounts(react, reach);
 		System.out.println("\n\n" + c[0]);
+
+		reach.removeAll(react);
+		System.out.println("reach = " + reach);
 	}
 
 	static void printPhosphoRelsTextEvidence() throws IOException
@@ -237,5 +245,12 @@ public class ReactomeHelp
 		});
 
 		writer.close();
+	}
+
+	static void printReactomeRelations() throws IOException
+	{
+		Files.lines(Paths.get("/home/babur/Documents/Analyses/Reactome-help/GEF-Rho_Reach_Reactome_Comparison_finalized.txt"))
+			.skip(1).map(l -> l.split("\t")).filter(t -> t.length > 3 && t[2].startsWith("PMID"))
+			.forEach(t -> System.out.println(t[1] + "\tactivates-gtpase\t" + t[0]));
 	}
 }

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
 /**
@@ -17,7 +18,7 @@ public class InspectPhosphoproteomicsData
 {
 	static final String DIR = "/home/babur/Documents/RPPA/TCGA/PNNL/";
 	static final String DATA_FILE = DIR + "PNLL-causality-formatted.txt";
-	static final String GROUPS_FILE = DIR + "subtypes/Subtype-Immunoreactive/parameters.txt";
+	static final String GROUPS_FILE = DIR + "subtypes/Subtype-Mesenchymal/parameters.txt";
 	static final String PLOT = DIR + "plot.txt";
 	static String[] control;
 	static String[] test;
@@ -27,10 +28,13 @@ public class InspectPhosphoproteomicsData
 
 	public static void main(String[] args) throws IOException
 	{
-		loadData();
-//		replaceNansWithLowValues();
-		loadGroups();
-		writeDistribution(PLOT);
+		displayDistributionsForGene("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF");
+//		displayCorrelationForPeptides("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF-S729", "BRAF-S151");
+//		printSampleGroupsSeparatedByAPeptide("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF-S151");
+
+//		loadData();
+//		loadGroups();
+//		writeDistribution(PLOT);
 	}
 
 	static void writeDistribution(String file) throws IOException
@@ -44,7 +48,8 @@ public class InspectPhosphoproteomicsData
 			double[] c = getValues(id, control);
 			double[] t = getValues(id, test);
 
-			double p = getTTestSignedPValue(c, t);
+//			double p = getTTestSignedPValue(c, t);
+			double p = getNanImbalanceSignedPValue(c, t);
 
 			if (!Double.isNaN(p))
 			{
@@ -56,10 +61,10 @@ public class InspectPhosphoproteomicsData
 
 		UniformityChecker.plot(pvals, file);
 
-		Map<String, Double> qVals = FDR.getQVals(pMap, null);
-		qVals.keySet().stream().filter(s -> qVals.get(s) <= 0.5)
-			.sorted((s1, s2) -> qVals.get(s1).compareTo(qVals.get(s2))).forEach(id ->
-			System.out.println(id + "\t" + spMap.get(id) + "\t" + qVals.get(id)));
+//		Map<String, Double> qVals = FDR.getQVals(pMap, null);
+//		qVals.keySet().stream().filter(s -> qVals.get(s) <= 0.5)
+//			.sorted((s1, s2) -> qVals.get(s1).compareTo(qVals.get(s2))).forEach(id ->
+//			System.out.println(id + "\t" + spMap.get(id) + "\t" + qVals.get(id)));
 	}
 
 	static double logTransform(double p)
@@ -99,11 +104,14 @@ public class InspectPhosphoproteomicsData
 		int tN = ArrayUtil.countNaNs(test);
 		int cN = ArrayUtil.countNaNs(control);
 		int featured = tN + cN;
-		double p = FishersExactTest.calcImprovishmentPval(size, featured, test.length, tN);
-		int sign = p > 0.5 ? -1 : 1;
-		if (p > 0.5) p = 1-p;
-		p *= 2 * sign;
-		return p;
+		double pC = ChiSquare.testDependence(size, featured, control.length, cN);
+//		double pC = FishersExactTest.calcEnrichmentPval(size, featured, control.length, cN);
+//		double pT = FishersExactTest.calcEnrichmentPval(size, featured, test.length, tN);
+//		int sign = pC < pT ? -1 : 1;
+
+//		double p = Math.min(pT, pC);
+//		p *= /*2 **/ sign;
+		return pC;
 	}
 
 
@@ -162,7 +170,22 @@ public class InspectPhosphoproteomicsData
 			}
 		});
 	}
-	
+
+	static void randomizeData()
+	{
+		for (String id : data.keySet())
+		{
+			Map<String, Double> map = data.get(id);
+			List<Double> list = map.values().stream().collect(Collectors.toList());
+			Collections.shuffle(list);
+			int i = 0;
+			for (String sample : new HashSet<>(map.keySet()))
+			{
+				map.put(sample, list.get(i++));
+			}
+		}
+	}
+
 	static Set<String> getSamplesWithData() throws IOException
 	{
 		String[] header = readHeader();
@@ -192,20 +215,70 @@ public class InspectPhosphoproteomicsData
 		return Files.lines(Paths.get(DATA_FILE)).findFirst().get().split("\t");
 	}
 
-	private static void replaceNansWithLowValues()
+	static void displayDistributionsForGene(String protFile, String gene) throws IOException
 	{
-		Random rand = new Random();
-
-		for (String id : data.keySet())
+		Files.lines(Paths.get(protFile)).skip(1).filter(l -> l.startsWith(gene)).map(l -> l.split("\t"))
+			.filter(t -> t.length > 4 && t[1].equals(gene)).forEach(t ->
 		{
-			Map<String, Double> map = data.get(id);
+			List<Double> list = new ArrayList<>();
+			for (int i = 4; i < t.length; i++)
+			{
+				Double d = Double.valueOf(t[i]);
+				if (!d.isNaN()) list.add(d);
+			}
+			double[] vals = ArrayUtil.convertToBasicDoubleArray(list);
 
-			double[] vals = map.values().stream().filter(d -> !d.isNaN()).flatMapToDouble(DoubleStream::of).toArray();
-			double min = Summary.min(vals);
-			double sd = Summary.stdev(vals);
+			KernelDensityPlot.plot(t[0], vals);
+		});
+	}
+	static void displayCorrelationForPeptides(String protFile, String pep1, String pep2) throws IOException
+	{
+		Map<String, double[]> map = new HashMap<>();
 
-			map.keySet().stream().filter(s -> map.get(s).isNaN()).forEach(s ->
-				map.put(s, min + (rand.nextGaussian() * sd)));
+		Files.lines(Paths.get(protFile)).skip(1).filter(l -> l.startsWith(pep1) || l.startsWith(pep2)).map(l -> l.split("\t"))
+			.forEach(t ->
+		{
+			List<Double> list = new ArrayList<>();
+			for (int i = 4; i < t.length; i++)
+			{
+				Double d = Double.valueOf(t[i]);
+				list.add(d);
+			}
+			double[] vals = ArrayUtil.convertToBasicDoubleArray(list);
+
+			map.put(t[0], vals);
+		});
+
+		double[][] vv = ArrayUtil.trimNaNs(map.get(pep1), map.get(pep2));
+		System.out.println("correlation = " + Correlation.pearson(vv[0], vv[1]));
+	}
+
+	static void printSampleGroupsSeparatedByAPeptide(String protFile, String pep) throws IOException
+	{
+		String[] header = Files.lines(Paths.get(protFile)).findFirst().get().split("\t");
+		String[] tok = Files.lines(Paths.get(protFile)).skip(1).filter(l -> l.startsWith(pep)).map(l -> l.split("\t"))
+			.filter(t -> t[0].equals(pep)).findFirst().get();
+
+		List<Double> list = new ArrayList<>();
+		for (int i = 4; i < tok.length; i++)
+		{
+			Double d = Double.valueOf(tok[i]);
+			if (!d.isNaN()) list.add(d);
+		}
+
+		Collections.sort(list);
+
+		double b1 = list.get(list.size() / 3);
+		double b2 = list.get((2 * list.size()) / 3);
+
+		for (int i = 4; i < header.length; i++)
+		{
+			Double d = Double.valueOf(tok[i]);
+			if (!d.isNaN())
+			{
+				if (d <= b1) System.out.println("control-value-column = " + header[i]);
+				else if (d >= b2) System.out.println("test-value-column = " + header[i]);
+			}
 		}
 	}
 }

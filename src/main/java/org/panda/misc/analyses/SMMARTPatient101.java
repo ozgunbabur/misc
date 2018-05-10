@@ -1,5 +1,6 @@
 package org.panda.misc.analyses;
 
+import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.Tuple;
 import org.panda.utility.statistics.*;
@@ -23,16 +24,17 @@ public class SMMARTPatient101
 	public static final String RUNS_DIR = DIR + "sample-runs/";
 	public static final String PATIENT_DIR = "/home/babur/Documents/Analyses/SMMART/Patient1/";
 	public static final String RPPAFile = "RPPA/Sample1/01_Gray_Johnson_Set131.txt";
+	public static final String RPPAFile2 = "RPPA/Sample2/15_Joe_Gray__Brett_Johnson_Set140_111517.csv";
 	public static final String RNA_FILE = "SMMART-101-RNA-seq-rawcounts.txt";
 	public static final String GeneTrails_CNA_FILE = "irb16113_reported_copy_number_by_mrn_Subject_101_deID-CompBio.csv";
 
 	public static void main(String[] args) throws IOException
 	{
-		assessTumorSource();
+//		assessTumorSource();
 //		printUniformityOfGraphSizePvals(RUNS_DIR);
 
 //		mapPlatforms();
-//		writeSample1InZScores();
+		writeSamplesInZScores();
 
 //		extractTCGABRCASubtype();
 
@@ -192,7 +194,7 @@ public class SMMARTPatient101
 
 		int mapped = 0;
 
-		BufferedWriter writer = Files.newBufferedWriter(Paths.get(PATIENT_DIR + "RPPA/Sample1/platform.txt"));
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(PATIENT_DIR + "RPPA/Sample1/platform-temp.txt"));
 		writer.write("ID-tcga\tID\tSymbols\tSites\tEffect");
 
 		for (int i = 0; i < ids.length; i++)
@@ -249,12 +251,12 @@ public class SMMARTPatient101
 		System.out.println("mapped = " + mapped);
 	}
 
-	static void writeSample1InZScores() throws IOException
+	static void writeSamplesInZScores() throws IOException
 	{
-		String compileDir = PATIENT_DIR + "RPPA/Sample1-compare-Basal/";
+		String compileDir = PATIENT_DIR + "RPPA/Sample2/";
 
 		// Load TCGA distributions
-		Map<String, List<Double>> distMap = loadDistributions(PATIENT_DIR + "RPPA/TCGA-BRCA-Basal.csv");
+		Map<String, List<Double>> distMap = loadDistributions(PATIENT_DIR + "RPPA/TCGA-BRCA-L4.csv");
 
 		// Load Patient 101 RPPA data
 
@@ -309,6 +311,35 @@ public class SMMARTPatient101
 				}
 			}
 		});
+
+
+
+		// Load patient metastasis #2
+
+		idLine = Files.lines(Paths.get(PATIENT_DIR + RPPAFile2)).skip(1).findFirst().get().trim();
+		valLine = Files.lines(Paths.get(PATIENT_DIR + RPPAFile2)).skip(11).findFirst().get().trim();
+
+		idLine = idLine.substring(idLine.indexOf("\t") + 1);
+		valLine = valLine.substring(valLine.indexOf("human tissue") + 13);
+
+		String[] ids2 = idLine.split("\t");
+		Double[] values2 = Arrays.stream(valLine.split("\t")).map(Double::valueOf).collect(Collectors.toList()).toArray(new Double[0]);
+
+		assert ids2.length == values2.length;
+
+		// Load RPPA data in the same batch with the patient sample
+		Double[][] xMatrix2 = new Double[10][];
+		for (int i = 0; i < xMatrix2.length; i++)
+		{
+			String s = Files.lines(Paths.get(PATIENT_DIR + RPPAFile2)).skip(31 + i).findFirst().get().trim();
+			s = s.substring(s.indexOf("Breast Cancer") + 14);
+			xMatrix2[i] = Arrays.stream(s.split("\t")).map(Double::valueOf).collect(Collectors.toList()).toArray(new Double[0]);
+		}
+
+		// print difference in two samples
+		CollectionUtil.printVennSets(new HashSet<>(Arrays.asList(ids)), new HashSet<>(Arrays.asList(ids2)));
+		if (true) System.exit(0);
+
 
 //		// Print TCGA and SMMART RPPA Venn sets
 //		Set<String> tcga_set = new HashSet<>(Arrays.asList(header).subList(4, Arrays.asList(header).size()));

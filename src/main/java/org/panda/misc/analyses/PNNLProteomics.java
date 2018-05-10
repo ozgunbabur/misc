@@ -22,7 +22,7 @@ public class PNNLProteomics
 	public static final String OUT_DIR = "/home/babur/Documents/RPPA/TCGA/PNNL/";
 	public static final String PROT_FILE = DIR + "PNNL-proteome.txt";
 	public static final String PHOSPHO_FILE = DIR + "PNNL-phosphoproteome.txt";
-	public static final String OUTPUT_FILE = OUT_DIR + "PNLL-causality-formatted.txt";
+	public static final String OUTPUT_FILE = OUT_DIR + "PNNL-TCGA-OV-proteomics.txt";
 	public static final String SUBTYPE_DIR = OUT_DIR + "/subtypes";
 	public static final String CLINICAL_FILE = OUT_DIR + "/clinical-data.txt";
 	public static final String RNA_SUBTYPES_FILE = SUBTYPE_DIR + "/rna-subtype-map.txt";
@@ -50,8 +50,8 @@ public class PNNLProteomics
 
 	public static void main(String[] args) throws IOException
 	{
-//		prepareDataFile();
-		prepareSubtypeFolders(RNA_SUBTYPES_FILE, "Subtype-");
+		prepareDataFile();
+//		prepareSubtypeFolders(RNA_SUBTYPES_FILE, "Subtype-");
 //		prepareSubtypeFolders(PROTEOMICS_SUBTYPES_FILE, "Proteomic-Subtype-");
 //		preparePlainumStatus();
 //		prepareOldVersusYoung();
@@ -202,6 +202,38 @@ public class PNNLProteomics
 		Set<String> missing = new HashSet<>(idToIndex.keySet());
 		missing.removeAll(idToIndices.keySet());
 		System.out.println("Missing from total proteins = " + missing);
+
+		// new simple code not handling multiple peptides for the same site
+
+		Files.lines(Paths.get(PHOSPHO_FILE)).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			String sym = t[0];
+			if (sym.isEmpty()) return;
+			String peptide = t[2];
+			String site = t[3];
+			if (site.isEmpty()) return;
+
+			FileUtil.lnwrite(site + "-" + peptide + "\t" + sym + "\t", writer);
+			String[] s = site.substring(site.lastIndexOf("-") + 1, site.length() - 1).split("s|t|y");
+			FileUtil.write(ArrayUtil.getString("|", s) + "\t", writer);
+
+			ids.forEach(id ->
+			{
+				if (idToIndex.containsKey(id) && t.length > idToIndex.get(id))
+				{
+					String val = t[idToIndex.get(id)];
+					if (val.isEmpty()) val = "NaN";
+					FileUtil.write("\t" + val, writer);
+				}
+				else FileUtil.write("\tNaN", writer);
+			});
+
+
+		});
+		writer.close();
+
+		// below code handles presence of multiple phosphopeptides for the same site by taking max for each sample
+		if (true) return;
 
 		Map<String, Map<String, Set<String[]>>> data = new HashMap<>();
 

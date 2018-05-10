@@ -7,7 +7,9 @@ import org.panda.utility.statistics.KernelDensityPlot;
 import org.panda.utility.statistics.Summary;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -27,8 +29,9 @@ public class CPTACBreast
 	public static void main(String[] args) throws IOException
 	{
 //		convertToCpFormat();
-//		printGroups();
-		printForSpecificHighLowComparison();
+//		printAllSamples();
+		printGroups();
+//		printForSpecificHighLowComparison();
 	}
 
 	static void convertToCpFormat() throws IOException
@@ -36,8 +39,8 @@ public class CPTACBreast
 		String[] protH = readHeader(PROT_FILE);
 		String[] phosH = readHeader(PHOS_FILE);
 
-		Map<String, Integer> protInd = getIndicesMap(protH);
-		Map<String, Integer> phosInd = getIndicesMap(phosH);
+		Map<String, Set<Integer>> protInd = getIndicesMap(protH);
+		Map<String, Set<Integer>> phosInd = getIndicesMap(phosH);
 
 		List<String> samples = protInd.keySet().stream().sorted().collect(Collectors.toList());
 
@@ -59,7 +62,7 @@ public class CPTACBreast
 
 			for (String sample : samples)
 			{
-				FileUtil.tab_write(phosMap.get(k)[phosInd.get(sample)], writer);
+				FileUtil.tab_write(getMean(phosMap.get(k), phosInd.get(sample)), writer);
 			}
 		});
 
@@ -69,21 +72,25 @@ public class CPTACBreast
 
 			for (String sample : samples)
 			{
-				FileUtil.tab_write(protMap.get(k)[protInd.get(sample)], writer);
+				FileUtil.tab_write(getMean(protMap.get(k), protInd.get(sample)), writer);
 			}
 		});
 
 		writer.close();
 	}
 
-	static Map<String, Integer> getIndicesMap(String[] samples)
+	static Map<String, Set<Integer>> getIndicesMap(String[] samples)
 	{
-		Map<String, Integer> map = new HashMap<>();
+		Map<String, Set<Integer>> map = new HashMap<>();
 		for (int i = 0; i < samples.length; i++)
 		{
 			if (samples[i] != null)
 			{
-				map.put(samples[i], i);
+				if (!map.containsKey(samples[i]))
+				{
+					map.put(samples[i], new HashSet<>());
+				}
+				map.get(samples[i]).add(i);
 			}
 		}
 		return map;
@@ -173,34 +180,134 @@ public class CPTACBreast
 	{
 		if (Character.isUpperCase(s.charAt(0)) && !s.contains("Unshared") && s.contains("-"))
 		{
-			String[] t = s.split(" ")[0].split("-");
-			return "TCGA-" + t[0] + "-" + t[1];
+			return "TCGA-" + s.split(" ")[0].split("\\.")[0];
 		}
 		return null;
 	}
 
+	static double getMean(double[] vals, Set<Integer> inds)
+	{
+		double sum = 0;
+		int cnt = 0;
+
+		for (int i : inds)
+		{
+			if (!Double.isNaN(vals[i]))
+			{
+				sum += vals[i];
+				cnt++;
+			}
+		}
+
+		if (cnt == 0) return Double.NaN;
+		return sum / cnt;
+	}
+
+	static final String PARAMS = "proteomics-values-file = ../../../CPTAC-TCGA-BRCA-data.txt\n" +
+		"id-column = ID\n" +
+		"symbols-column = Symbols\n" +
+		"sites-column = Sites\n" +
+		"effect-column = Effect\n" +
+		"do-log-transform = false\n" +
+		"\n" +
+		"value-transformation = significant-change-of-mean\n" +
+		"fdr-threshold-for-data-significance = 0.1 protein\n" +
+		"fdr-threshold-for-data-significance = 0.1 phosphoprotein\n" +
+		"\n" +
+		"minimum-sample-size = 3\n" +
+		"\n" +
+		"#relation-filter-type = phospho-only\n" +
+		"color-saturation-value = 10\n" +
+		"show-insignificant-data = false\n" +
+		"\n" +
+		"calculate-network-significance = false\n" +
+		"permutations-for-significance = 100\n";
+
+	static void printAllSamples() throws IOException
+	{
+		List<String> samples = getIndicesMap(readHeader(PROT_FILE)).keySet().stream().sorted()
+			.collect(Collectors.toList());
+
+		samples.forEach(s -> System.out.println("value-column = " + s));
+	}
+
 	static void printGroups() throws IOException
 	{
+		// Pam50 = 20, RPPA = 25, Stage = 12
 		Map<String, String> subMap = Files.lines(Paths.get(SUBTYPE_FILE)).skip(6).map(l -> l.split("\t"))
-			.collect(Collectors.toMap(t -> t[0], t -> t[20].replaceAll(" ", "")));
+			.collect(Collectors.toMap(t -> t[0] + "-01A", t -> t[20].replaceAll(" ", "")//.replaceAll("/", "").replaceAll("A", "").replaceAll("B", "").replaceAll("C", "")
+			));
 
 		List<String> samples = getIndicesMap(readHeader(PROT_FILE)).keySet().stream().sorted()
 			.collect(Collectors.toList());
 
-		subMap.values().stream().distinct().forEach(type ->
+		String base = "/home/babur/Documents/Analyses/CPTACBreastCancer/subtypes/PAM50/";
+
+		if (false)
 		{
-			System.out.println("\ntype = " + type);
-			samples.forEach(s ->
-				System.out.println((subMap.get(s).equals(type) ? "test" : "control") + "-value-column = " + s));
-		});
+			// against all others
+			subMap.values().stream().distinct().forEach(type ->
+			{
+				String dirName = base + type + "-vs-others";
+				System.out.println("\n" + dirName);
+				new File(dirName).mkdirs();
 
-		System.out.println("\nCorrelation");
-		samples.forEach(s -> System.out.println("value-column = " + s));
+				BufferedWriter writer = FileUtil.newBufferedWriter(dirName + "/parameters.txt");
+				FileUtil.write(PARAMS, writer);
+				samples.forEach(s -> FileUtil.lnwrite((subMap.get(s).equals(type) ? "test" : "control") + "-value-column = " + s, writer));
+				FileUtil.closeWriter(writer);
+			});
 
-		printMarkerGroups("ER", 3, samples);
-		printMarkerGroups("PR", 4, samples);
-		printMarkerGroups("HER2", 5, samples);
+			// pair comparison
+			subMap.values().stream().distinct().forEach(typeT ->
+				subMap.values().stream().distinct().filter(tC -> tC.compareTo(typeT) < 0).forEach(typeC ->
+				{
+					String dirName = base + typeT + "-vs-" + typeC;
+					System.out.println("\n" + dirName);
+					new File(dirName).mkdirs();
+
+					BufferedWriter writer = FileUtil.newBufferedWriter(dirName + "/parameters.txt");
+					FileUtil.write(PARAMS, writer);
+
+					samples.stream().filter(s -> subMap.get(s).equals(typeT) || subMap.get(s).equals(typeC))
+						.forEach(s -> FileUtil.lnwrite((subMap.get(s).equals(typeT) ? "test" : "control") + "-value-column = " + s, writer));
+
+					FileUtil.closeWriter(writer);
+				}));
+		}
+
+		if (true)
+		{
+			String dirName = base + "LuminalAB-vs-Basal-like";
+			System.out.println("\n" + dirName);
+			new File(dirName).mkdirs();
+
+			BufferedWriter writer = FileUtil.newBufferedWriter(dirName + "/parameters.txt");
+			FileUtil.write(PARAMS, writer);
+
+			printGroupsCompareTwo(subMap, samples, writer,
+				new String[]{"LuminalA", "LuminalB"},
+				new String[]{"Basal-like"});
+
+			FileUtil.closeWriter(writer);
+		}
+
+//		System.out.println("\nCorrelation");
+//		samples.forEach(s -> System.out.println("value-column = " + s));
+
+//		printMarkerGroups("ER", 3, samples);
+//		printMarkerGroups("PR", 4, samples);
+//		printMarkerGroups("HER2", 5, samples);
 	}
+
+	private static void printGroupsCompareTwo(Map<String, String> subMap, List<String> samples, Writer writer,
+		String[] testType, String[] ctrlType)
+	{
+		samples.stream().filter(s -> ArrayUtil.contains(ctrlType, subMap.get(s)) || ArrayUtil.contains(testType, subMap.get(s))).forEach(s ->
+			FileUtil.lnwrite((ArrayUtil.contains(testType, subMap.get(s)) ? "test" : "control") + "-value-column = " + s, writer));
+	}
+
+
 
 	static void printMarkerGroups(String name, int index, List<String> samples) throws IOException
 	{

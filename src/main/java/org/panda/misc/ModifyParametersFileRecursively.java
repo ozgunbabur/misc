@@ -110,11 +110,15 @@ public class ModifyParametersFileRecursively
 
 	public static void main(String[] args) throws IOException
 	{
-//		String dir = "/home/babur/Documents/Analyses/Koksal-EGF";
-		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/subtypes";
+		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/correlation-based-phospho-0.001-robustness";
+//		String dir = "/home/babur/Documents/RPPA/TCGA/PNNL/temp";
+//		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/subtypes";
 
-//		replaceInFiles(dir, "permutations-for-significance = 10000", "permutations-for-significance = 100");
-//		removeFromFiles(dir, "gene-activity = EGF a");
-		addToFiles(dir, "color-saturation-value = 5", 10);
+//		replaceInFiles(dir, "fdr-threshold-for-data-significance = 0.5 phosphoprotein", "fdr-threshold-for-data-significance = 0.1 phosphoprotein");
+//		replaceInFiles(dir, "do-site-matching = false", "do-site-matching = true");
+		replaceInFiles(dir, "calculate-network-significance = true", "calculate-network-significance = false");
+//		replaceInFiles(dir, "use-missing-proteomic-data-for-test = true", "use-missing-proteomic-data-for-test = false");
+//		removeFromFiles(dir, "proteomics-platform-file = ../data-fdr0.1.txt");
+//		addToFiles(dir, "site-match-proximity-threshold = 2", 11);
 	}
 }

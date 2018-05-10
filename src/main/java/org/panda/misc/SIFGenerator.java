@@ -12,9 +12,7 @@ public class SIFGenerator
 		String dir = "/home/babur/Documents/PC/";
 //		String dir = "/home/babur/Documents/Temp/";
 
-		PaxtoolsMain p = new PaxtoolsMain();
-
-		p.main(new String[]{"toSIF", dir +
+		PaxtoolsMain.toSifnx(new String[]{"toSIF", dir +
 
 			"PathwayCommons9.All.BIOPAX.owl", dir + "PC.sif",
 //		    "temp.owl", dir + "temp.sif",
