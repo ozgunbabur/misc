@@ -30,7 +30,7 @@ public class OncogeneAndTSDetector
 			if (mutFile.exists())
 			{
 				if (reader == null) reader = new MutationReader(mutFile.getPath());
-				else reader.load(mutFile.getPath(), null);
+				else reader.load(mutFile.getPath(), null, null);
 			}
 		}
 

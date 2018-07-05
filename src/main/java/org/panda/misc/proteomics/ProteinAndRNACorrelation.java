@@ -1,4 +1,4 @@
-package org.panda.misc;
+package org.panda.misc.proteomics;
 
 import org.panda.resource.tcga.ExpressionReader;
 import org.panda.utility.ArrayUtil;
@@ -21,7 +21,7 @@ public class ProteinAndRNACorrelation
 	public static final String DIR = "/home/babur/Documents/RPPA/TCGA/PNNL/";
 	public static final String PROTEOMIC_FILE = DIR + "PNLL-causality-formatted.txt";
 
-//	public static final String DIR = "/home/babur/Documents/Analyses/CPTACBreastCancer/";
+//	public static final String DIR = "/home/babur/Documents/Analyses/CPTACBreastCancer77/";
 //	public static final String PROTEOMIC_FILE = DIR + "CPTAC-TCGA-BRCA-data.txt";
 
 	public static final String EXPRESSION_FILE = DIR + "expression.txt";
@@ -59,6 +59,7 @@ public class ProteinAndRNACorrelation
 		}
 
 		Histogram h = new Histogram(0.1);
+		h.setBorderAtZero(true);
 		corMap.values().forEach(t -> h.count(t.v));
 		h.print();
 

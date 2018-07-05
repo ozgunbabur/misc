@@ -1,7 +1,8 @@
-package org.panda.misc;
+package org.panda.misc.proteomics;
 
 import org.panda.utility.FileUtil;
 import org.panda.utility.ValToColor;
+import org.panda.utility.statistics.Histogram;
 
 import java.awt.*;
 import java.io.BufferedWriter;
@@ -22,8 +23,10 @@ public class SIFRecurrenceCalculator
 	public static void main(String[] args) throws IOException
 	{
 		String base = "/home/babur/Documents/RPPA/TCGA/correlation/";
-		prepareIntegratedSIFs(base, base + "recurrent");
+//		prepareIntegratedSIFs(base, base + "recurrent");
+		plotRecurrenceHistogram(base, base + "recurrent");
 	}
+
 	public static void prepareIntegratedSIFs(String inDir, String outDir) throws IOException
 	{
 		if (!(new File(outDir).exists())) new File(outDir).mkdirs();
@@ -37,10 +40,11 @@ public class SIFRecurrenceCalculator
 			.map(file -> file.getPath() + "/causative")
 			.forEach(pathWithoutExtension -> updateCounts(pathWithoutExtension, sifCnt, fmtCnt, geneCnt));
 
+
 		int max = sifCnt.values().stream().reduce(0, Integer::max);
 		int maxGene = geneCnt.values().stream().reduce(0, Integer::max);
 
-		for (int i = max-1; i > 0; i--)
+		for (int i = max - 1; i > 0; i--)
 		{
 			ValToColor posVtc = new ValToColor(new double[]{i, max}, new Color[]{new Color(220, 255, 220), new Color(0, 80, 0)});
 			ValToColor negVtc = new ValToColor(new double[]{i, max}, new Color[]{new Color(255, 220, 220), new Color(80, 0, 0)});
@@ -81,7 +85,7 @@ public class SIFRecurrenceCalculator
 
 				FileUtil.writeln("edge\t" + t[0] + " " + t[1] + " " + t[2] + "\tcolor\t" +
 					((t[1].startsWith("de") || t[1].startsWith("down") || t[1].startsWith("inh")) ?
-					negVtc.getColorInString(sifCnt.get(l)) : posVtc.getColorInString(sifCnt.get(l))), w2);
+						negVtc.getColorInString(sifCnt.get(l)) : posVtc.getColorInString(sifCnt.get(l))), w2);
 			});
 
 			w2.close();
@@ -101,5 +105,26 @@ public class SIFRecurrenceCalculator
 
 		lines = FileUtil.lines(pathWithoutExtension + ".format").collect(Collectors.toSet());
 		lines.stream().forEach(line -> fmtCnt.put(line, fmtCnt.containsKey(line) ? fmtCnt.get(line) + 1 : 1));
+	}
+
+	public static void plotRecurrenceHistogram(String inDir, String outDir) throws IOException
+	{
+		if (!(new File(outDir).exists())) new File(outDir).mkdirs();
+
+		Map<String, Integer> sifCnt = new HashMap<>();
+		Map<String, Integer> fmtCnt = new HashMap<>();
+		Map<String, Integer> geneCnt = new HashMap<>();
+
+		Arrays.stream(new File(inDir).listFiles())
+			.filter(f -> f.isDirectory() && Files.exists(Paths.get(f.getPath() + "/causative.sif")))
+			.map(file -> file.getPath() + "/causative")
+			.forEach(pathWithoutExtension -> updateCounts(pathWithoutExtension, sifCnt, fmtCnt, geneCnt));
+
+		int[] h = new int[sifCnt.values().stream().max(Integer::compareTo).get()];
+		sifCnt.keySet().stream().filter(s -> !s.contains("phospho")).forEach(sif -> h[sifCnt.get(sif) - 1]++);
+		for (int i = 0; i < h.length; i++)
+		{
+			System.out.println((i + 1) + "\t" + h[i]);
+		}
 	}
 }

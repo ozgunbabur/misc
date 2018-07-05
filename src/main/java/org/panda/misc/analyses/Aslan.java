@@ -15,21 +15,28 @@ import java.util.*;
  */
 public class Aslan
 {
-	public static final String BASE = "/home/babur/Documents/Analyses/Aslan/second-pass/";
-	public static final String PHOS_IN1 = BASE + "AslanPhosphoSerThrTMT-August2017.csv";
-	public static final String PHOS_IN2 = BASE + "AslanPhosphoTyrosineTMT-June2017.csv";
-	public static final String PHOS_OUT = BASE + "phosphoproteomics-fdr0.2.txt";
+//	public static final String BASE = "/home/babur/Documents/Analyses/Aslan/second-pass/";
+//	public static final String PHOS_IN1 = BASE + "AslanPhosphoSerThrTMT-August2017.csv";
+//	public static final String PHOS_IN2 = BASE + "AslanPhosphoTyrosineTMT-June2017.csv";
+//	public static final String PHOS_OUT = BASE + "phosphoproteomics-fdr0.2.txt";
 
-	public static final String OLD_BASE = "/home/babur/Documents/Analyses/Aslan/first-pass/";
-	public static final String OLD_PHOS_IN = OLD_BASE + "phosphoproteomics.csv";
-	public static final String OLD_PHOS_OUT = OLD_BASE + "phosphoproteomics-fdr0.1.txt";
+//	public static final String OLD_BASE = "/home/babur/Documents/Analyses/Aslan/first-pass/";
+//	public static final String OLD_PHOS_IN = OLD_BASE + "phosphoproteomics.csv";
+//	public static final String OLD_PHOS_OUT = OLD_BASE + "phosphoproteomics-fdr0.1.txt";
+
+	public static final String BASE = "/home/babur/Documents/Analyses/Aslan/platelet-first-redo/";
+	public static final String PHOS_IN1 = BASE + "ASLA-515_humanplatelet_TiO2phos_TO-SEND.csv";
+	public static final String PHOS_IN2 = BASE + "ASLA-515_humanplatelet_pTyr_phos_TO-SEND.csv";
+	public static final String PHOS_OUT = BASE + "data-fdr0.1.txt";
+
 
 	static final double FDR_THR = 0.1;
 
 	public static void main(String[] args) throws IOException
 	{
+		convertPhosphoproteomics(FDR_THR, PHOS_OUT, PHOS_IN1, PHOS_IN2);
 //		convertPhosphoproteomics(FDR_THR, PHOS_OUT, PHOS_IN1, PHOS_IN2);
-		convertPhosphoproteomics(FDR_THR, OLD_PHOS_OUT, OLD_PHOS_IN);
+//		convertPhosphoproteomics(FDR_THR, OLD_PHOS_OUT, OLD_PHOS_IN);
 //		printUniProtNames();
 	}
 
@@ -52,27 +59,37 @@ public class Aslan
 
 	static void readCVSFile(String file, Map<String, Holder> map, double fdrThr) throws IOException
 	{
-		String[] header = Files.lines(Paths.get(file)).skip(5).findFirst().get().split("\t");
+		String[] header = Files.lines(Paths.get(file)).skip(4).findFirst().get().split("\t");
 
 		int siteInd = ArrayUtil.indexOf(header, "protein mod site", "Site List", "Mod Protein Location");
 		int fdrInd = ArrayUtil.indexOf(header, "FDR");
 		int fcInd = ArrayUtil.indexOf(header, "fold change");
 		int logfcInd = ArrayUtil.indexOf(header, "logFC");
 		int geneInd = ArrayUtil.indexOf(header, "Protein Descriptions");
+		int secondGeneInd = ArrayUtil.indexOf(header, "Gene List");
 
-		Files.lines(Paths.get(file)).skip(6).map(l -> l.split("\t"))
-			.filter(t -> Double.parseDouble(t[fdrInd]) < fdrThr).forEach(t ->
+		Files.lines(Paths.get(file)).skip(5).map(l -> l.split("\t"))
+			.forEach(t ->
 		{
 			String sym = t[geneInd];
 
-			if (!sym.contains("GN="))
+			if (sym.contains("GN="))
 			{
-				System.err.println("No gene name in protein description: " + sym);
-				return;
+				int start = sym.indexOf("GN=") + 3;
+				sym = sym.substring(start, sym.indexOf(" ", start));
 			}
+			else
+			{
+				sym = t[secondGeneInd];
+				if (sym.contains(";")) sym = sym.substring(0, sym.indexOf(";"));
+				if (sym.contains(" ")) sym = sym.substring(0, sym.indexOf(" "));
 
-			int start = sym.indexOf("GN=") + 3;
-			sym = sym.substring(start, sym.indexOf(" ", start));
+				if (sym.startsWith("Synonyms=") || sym.contains(":"))
+				{
+					System.err.println("No gene name = " + sym);
+					return;
+				}
+			}
 
 			// there must be a site in this data
 			if (t[siteInd].isEmpty()) return;
@@ -80,13 +97,17 @@ public class Aslan
 			String[] sites = t[siteInd].split("; ");
 
 			// Fix for an error in the old proteomics files
-			for (int i = 0; i < sites.length; i++)
-			{
-				sites[i] = oneDown(sites[i]);
-			}
+//			for (int i = 0; i < sites.length; i++)
+//			{
+//				sites[i] = oneDown(sites[i]);
+//			}
+
+			double fdr = Double.parseDouble(t[fdrInd]);
 
 			double fc = Double.parseDouble(t[fcInd]);
 			if (t[logfcInd].startsWith("-")) fc = -fc;
+
+			if (fdr > fdrThr) fc = 0;
 
 			String id = sym;
 			for (String site : sites) id += "_" + site;

@@ -198,9 +198,9 @@ public class MutexReader
 
 	public static void main(String[] args)
 	{
-		String dir = "/home/babur/Downloads/PanCan/";
+		String dir = "/media/babur/6TB1/TCGA-pancan/whole/types/";
 		readMutexResultsRecursive(dir, new HashSet<>()).stream()
-			.sorted(Comparator.comparing(Group::getScore)).filter(g -> g.score < 0.01).peek(g -> g.shortenLoc(dir))
+			.sorted(Comparator.comparing(Group::getScore)).filter(g -> g.score < 0.05 && g.genes.contains("TP53")).peek(g -> g.shortenLoc(dir))
 			.map(g -> g.toString().replaceAll("/", "\t")).forEach(System.out::println);
 	}
 }

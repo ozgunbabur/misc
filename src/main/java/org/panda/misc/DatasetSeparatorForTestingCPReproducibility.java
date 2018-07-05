@@ -19,7 +19,7 @@ public class DatasetSeparatorForTestingCPReproducibility
 {
 	public static void main(String[] args) throws IOException
 	{
-		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/correlation-based-phospho-0.001";
+		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer77/correlation-based-phospho-0.1";
 //		subset(dir, 0.5, 100);
 		plotReproducibility(dir);
 	}

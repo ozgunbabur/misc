@@ -17,33 +17,31 @@ import java.util.*;
  */
 public class ConvertRNAseqToZScores
 {
-	static final String TCGA_FILE = "/home/babur/Documents/TCGA/BRCA/expression.txt";
-	static final String IN_FILE = "/home/babur/Documents/Analyses/SMMART/Patient1/SMMART-101-RNA-seq-rawcounts.txt";
-	static final String OUT_FILE = "/home/babur/Documents/Analyses/SMMART/Patient1/SMMART-101-RNA-seq-Z-scores.txt";
 	static final double LOG2 = Math.log(2D);
-	static final int SYM_INDEX = 1;
-	static final int[] VAL_INDEX = new int[]{2, 3};
 
 	public static void main(String[] args) throws IOException
 	{
-		convert();
+		convertExternalFileComparingWithTCGA("/home/babur/Documents/TCGA/BRCA/expression.txt",
+			new int[]{2, 3}, "/home/babur/Documents/Analyses/SMMART/Patient1/SMMART-101-RNA-seq-rawcounts.txt",
+			1, "/home/babur/Documents/Analyses/SMMART/Patient1/SMMART-101-RNA-seq-Z-scores.txt");
 	}
 
-	public static void convert() throws IOException
+	public static void convertExternalFileComparingWithTCGA(String tcgaFile, int[] valIndex, String inFile,
+		int symIndex, String outFile) throws IOException
 	{
-		ExpressionReader er = new ExpressionReader(TCGA_FILE);
+		ExpressionReader er = new ExpressionReader(tcgaFile);
 		String[] samples = er.getSamples().toArray(new String[0]);
 
 		Map<String, double[]> distMap = new HashMap<>();
 		List<Map<String, Double>> valMaps = new ArrayList<>();
-		for (int i : VAL_INDEX)
+		for (int i : valIndex)
 		{
 			valMaps.add(new HashMap<>());
 		}
 
-		Files.lines(Paths.get(IN_FILE)).skip(1).map(l -> l.split("\t")).forEach(t ->
+		Files.lines(Paths.get(inFile)).skip(1).map(l -> l.split("\t")).forEach(t ->
 		{
-			String sym = t[SYM_INDEX];
+			String sym = t[symIndex];
 
 			double[] dist = er.getGeneAlterationArray(sym, samples);
 			if (dist != null) dist = removeZeros(dist);
@@ -52,9 +50,9 @@ public class ConvertRNAseqToZScores
 			{
 				distMap.put(sym, dist);
 
-				for (int i = 0; i < VAL_INDEX.length; i++)
+				for (int i = 0; i < valIndex.length; i++)
 				{
-					double val = log(Double.valueOf(t[VAL_INDEX[i]]) + 1);
+					double val = log(Double.valueOf(t[valIndex[i]]) + 1);
 					valMaps.get(i).put(sym, val);
 				}
 			}
@@ -66,10 +64,10 @@ public class ConvertRNAseqToZScores
 			zscores.add(ZScore.get(distMap, valMap, null));
 		}
 
-		String[] header = Files.lines(Paths.get(IN_FILE)).findFirst().get().split("\t");
-		BufferedWriter writer = Files.newBufferedWriter(Paths.get(OUT_FILE));
-		writer.write(header[SYM_INDEX]);
-		for (int ind : VAL_INDEX)
+		String[] header = Files.lines(Paths.get(inFile)).findFirst().get().split("\t");
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(outFile));
+		writer.write(header[symIndex]);
+		for (int ind : valIndex)
 		{
 			writer.write("\t" + header[ind]);
 		}
@@ -86,6 +84,64 @@ public class ConvertRNAseqToZScores
 
 		writer.close();
 	}
+
+//	public static void convertTCGAFile(String tcgaFile, String outFile) throws IOException
+//	{
+//		ExpressionReader er = new ExpressionReader(tcgaFile);
+//		String[] samples = er.getSamples().toArray(new String[0]);
+//
+//		Map<String, double[]> distMap = new HashMap<>();
+//		List<Map<String, Double>> valMaps = new ArrayList<>();
+//		for (int i : valIndex)
+//		{
+//			valMaps.add(new HashMap<>());
+//		}
+//
+//		Files.lines(Paths.get(inFile)).skip(1).map(l -> l.split("\t")).forEach(t ->
+//		{
+//			String sym = t[symIndex];
+//
+//			double[] dist = er.getGeneAlterationArray(sym, samples);
+//			if (dist != null) dist = removeZeros(dist);
+//
+//			if (dist != null)
+//			{
+//				distMap.put(sym, dist);
+//
+//				for (int i = 0; i < valIndex.length; i++)
+//				{
+//					double val = log(Double.valueOf(t[valIndex[i]]) + 1);
+//					valMaps.get(i).put(sym, val);
+//				}
+//			}
+//		});
+//
+//		List<Map<String, Double>> zscores = new ArrayList<>();
+//		for (Map<String, Double> valMap : valMaps)
+//		{
+//			zscores.add(ZScore.get(distMap, valMap, null));
+//		}
+//
+//		String[] header = Files.lines(Paths.get(inFile)).findFirst().get().split("\t");
+//		BufferedWriter writer = Files.newBufferedWriter(Paths.get(outFile));
+//		writer.write(header[symIndex]);
+//		for (int ind : valIndex)
+//		{
+//			writer.write("\t" + header[ind]);
+//		}
+//
+//		distMap.keySet().stream().sorted().forEach(gene ->
+//		{
+//			FileUtil.lnwrite(gene, writer);
+//
+//			for (Map<String, Double> map : zscores)
+//			{
+//				FileUtil.write("\t" + map.get(gene), writer);
+//			}
+//		});
+//
+//		writer.close();
+//	}
 
 	private static double log(double x)
 	{

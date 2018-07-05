@@ -33,7 +33,7 @@ public class SMMARTPatient101
 //		assessTumorSource();
 //		printUniformityOfGraphSizePvals(RUNS_DIR);
 
-//		mapPlatforms();
+		mapPlatforms();
 		writeSamplesInZScores();
 
 //		extractTCGABRCASubtype();

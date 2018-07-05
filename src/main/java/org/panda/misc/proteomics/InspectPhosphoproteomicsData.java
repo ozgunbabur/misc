@@ -1,6 +1,7 @@
-package org.panda.misc;
+package org.panda.misc.proteomics;
 
 import org.panda.utility.ArrayUtil;
+import org.panda.utility.Tuple;
 import org.panda.utility.statistics.*;
 
 import java.io.BufferedWriter;
@@ -28,9 +29,11 @@ public class InspectPhosphoproteomicsData
 
 	public static void main(String[] args) throws IOException
 	{
-		displayDistributionsForGene("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF");
-//		displayCorrelationForPeptides("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF-S729", "BRAF-S151");
+//		displayDistributionsForGene("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF");
+//		displayCorrelationForPeptides("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "ATM-S1981", "BRCA1-S1524");
 //		printSampleGroupsSeparatedByAPeptide("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF-S151");
+
+		printCorrelationsOfSpecificGenes("/home/babur/Documents/Analyses/CPTACBreastCancer77/CPTAC-TCGA-BRCA-data.txt", "DYRK1B", "/home/babur/Documents/Temp/BRCA");
 
 //		loadData();
 //		loadGroups();
@@ -250,6 +253,13 @@ public class InspectPhosphoproteomicsData
 		});
 
 		double[][] vv = ArrayUtil.trimNaNs(map.get(pep1), map.get(pep2));
+
+		// print the numbers to plot
+//		for (int i = 0; i < vv[0].length; i++)
+//		{
+//			System.out.println(vv[0][i] + "\t" + vv[1][i]);
+//		}
+
 		System.out.println("correlation = " + Correlation.pearson(vv[0], vv[1]));
 	}
 
@@ -279,6 +289,58 @@ public class InspectPhosphoproteomicsData
 				if (d <= b1) System.out.println("control-value-column = " + header[i]);
 				else if (d >= b2) System.out.println("test-value-column = " + header[i]);
 			}
+		}
+	}
+
+	public static void printCorrelationsOfSpecificGenes(String protFile, String gene, String outDir) throws IOException
+	{
+		// get IDs of the rows that belong to this gene
+		Set<String> ids = Files.lines(Paths.get(protFile)).skip(1)
+			.filter(l -> l.substring(0, l.indexOf("\t")).contains(gene))
+			.map(l -> l.split("\t"))
+			.filter(t -> Arrays.asList(t[1].split(" ")).contains(gene)).map(t -> t[0])
+			.collect(Collectors.toSet());
+
+		Map<String, double[]> map = new HashMap<>();
+		Files.lines(Paths.get(protFile)).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			List<Double> list = new ArrayList<>();
+			for (int i = 4; i < t.length; i++)
+			{
+				Double d = Double.valueOf(t[i]);
+				list.add(d);
+			}
+			double[] vals = ArrayUtil.convertToBasicDoubleArray(list);
+
+			map.put(t[0], vals);
+		});
+
+		for (String id1 : ids)
+		{
+			Map<Tuple, Double> corMap = new HashMap<>();
+			Map<Tuple, String> tupToID = new HashMap<>();
+
+			BufferedWriter writer = Files.newBufferedWriter(Paths.get(outDir + "/" + id1 + "-correlations.txt"));
+			writer.write("Pep1\tPep2\tCorrelation\tP-value");
+
+			for (String id2 : map.keySet())
+			{
+				if (id1.equals(id2)) continue;
+
+				double[][] vv = ArrayUtil.trimNaNs(map.get(id1), map.get(id2));
+				Tuple cor = Correlation.pearson(vv[0], vv[1]);
+				if (!cor.isNaN())
+				{
+					corMap.put(cor, cor.p);
+					tupToID.put(cor, id2);
+				}
+			}
+			List<Tuple> select = FDR.select(corMap, null, 0.01);
+			for (Tuple tup : select)
+			{
+				writer.write("\n" + id1 + "\t" + tupToID.get(tup) + "\t" + tup.v + "\t" + tup.p);
+			}
+			writer.close();
 		}
 	}
 }

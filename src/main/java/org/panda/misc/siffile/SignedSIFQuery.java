@@ -1,4 +1,4 @@
-package org.panda.misc;
+package org.panda.misc.siffile;
 
 import org.panda.resource.CancerGeneCensus;
 import org.panda.resource.OncoKB;
@@ -8,6 +8,7 @@ import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.graph.DirectedGraph;
 import org.panda.utility.graph.PhosphoGraph;
+import org.panda.utility.statistics.FDR;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -186,6 +187,10 @@ public class SignedSIFQuery
 			{
 				chosen.add(l);
 			}
+			else if (t[2].equals("borderwidth") || t[2].equals("bordercolor") || t[2].equals("color"))
+			{
+				chosen.add(l);
+			}
 			else if (t[2].equals("rppasite"))
 			{
 				String[] tt = t[3].split("\\|");
@@ -218,11 +223,16 @@ public class SignedSIFQuery
 	{
 		String[] t = id.split("-");
 		if (t.length == 1) return id;
-		if (!((t[1].startsWith("S") || !t[1].startsWith("T") || !t[1].startsWith("Y")) && t[1].length() > 1 && Character.isDigit(t[1].charAt(1))))
+		if ((t[1].startsWith("S") || t[1].startsWith("T") || t[1].startsWith("Y")) && t[1].length() > 1 && Character.isDigit(t[1].charAt(1)))
 		{
-			return t[0] + "-" + t[1];
+			return t[0];
 		}
-		return t[0];
+		if (t[1].equals("rna") || t[1].equals("cna") || t[1].equals("mut"))
+		{
+			return t[0];
+		}
+
+		return t[0] + "-" + t[1];
 	}
 
 	public static Set<String> getGenePairs(String sifFile) throws IOException
@@ -291,19 +301,33 @@ public class SignedSIFQuery
 //			.map(t -> t[0]).distinct().peek(System.out::println).collect(Collectors.toSet());
 //		neighborhoodFromFile(dir + "causative.sif", genes, dir + "causative-115-wes.sif");
 
-		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/correlation-based-phospho-0.001/";
-//		Set<String> genes = Files.lines(Paths.get(dir/*.replaceFirst("0\\.001", "0.1")*/ + "significance-pvals.txt")).skip(2).map(l -> l.split("\t"))
-//			.filter(t -> t.length > 1 && Double.valueOf(t[1]) < 0.01).map(t -> t[0]).collect(Collectors.toSet());
-		Set<String> genes = new HashSet<>(OncoKB.get().getAllSymbols());
-		genes.addAll(CancerGeneCensus.get().getAllSymbols());
-		streamOverGenes(dir + "causative.sif", genes, dir + "causative-onco-downstream.sif", 1, 0);
+//		String dir = "/home/babur/Documents/Analyses/Aslan/platelet-second-pass/fdr0.1-nositematch/";
+//		neighborhoodFromFile(dir + "causative.sif", Collections.singleton("PRKCQ"), dir + "causative-PRKCQ.sif");
+
+		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer77/subtypes/PAM50/LuminalAB-vs-Basal-like/";
+//		Set<String> genes = loadSignificantGenes(dir + "significance-pvals.txt");
+		Set<String> genes = new HashSet<>(Arrays.asList("ESR1"));
+
+//		Set<String> genes = new HashSet<>(OncoKB.get().getAllSymbols());
+//		genes.addAll(CancerGeneCensus.get().getAllSymbols());
+
+		streamOverGenes(dir + "causative.sif", genes, dir + "causative-ESR1-neighborhood.sif", 5, 0);
 		FileUtil.writeLinesToFile(chooseRelevantLinesFromFormatFile(dir + "causative.format",
-			getDataIDsFromDataCentricSIF(dir + "causative-data-centric.sif", dir + "causative-onco-downstream.sif")),
-			dir + "causative-onco-downstream.format");
+			getDataIDsFromDataCentricSIF(dir + "causative-data-centric.sif", dir + "causative-ESR1-neighborhood.sif")),
+			dir + "causative-ESR1-neighborhood.format");
 
 //		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/correlation-based/";
 //		String inFile = dir + "causative-data-centric.sif";
 //		pathsBetweenFromFile(inFile, getNodesNameStarting(inFile, "BRAF", "AKT", "PPP"), dir + "causative-data-centric-subset.sif");
 
+	}
+
+	private static Set<String> loadSignificantGenes(String sigFile) throws IOException
+	{
+		Map<String, Double> pvals = Files.lines(Paths.get(sigFile)).skip(2).map(l -> l.split("\t"))
+			.collect(Collectors.toMap(t -> t[0], t -> Double.valueOf(t[1])));
+
+		List<String> select = FDR.select(pvals, null, 0.1);
+		return new HashSet<>(select);
 	}
 }
