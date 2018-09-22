@@ -16,8 +16,8 @@ import java.util.*;
  */
 public class ShowRNAseqExpressionCorrelation
 {
-	static final String TCGA_FILE = "/home/babur/Documents/TCGA/PRAD/expression.txt";
-	static String[] genes = new String[]{"AR", "KLK3", "KDM1A", "MYC"};
+	static final String TCGA_FILE = "/home/ozgun/Data/TCGA/BRCA/expression.txt";
+	static String[] genes = new String[]{"ESR1", "KLF4", "EGFR", "FOXA1"};
 
 	public static void main(String[] args) throws IOException
 	{
@@ -26,7 +26,7 @@ public class ShowRNAseqExpressionCorrelation
 
 	public static void plot() throws IOException
 	{
-		HashSet<String> geneSet = new HashSet<>(Arrays.asList(ShowRNAseqExpressionCorrelation.genes));
+		HashSet<String> geneSet = new HashSet<>(Arrays.asList(genes));
 		ExpressionReader er = new ExpressionReader(TCGA_FILE, geneSet);
 		String[] samples = er.getSamples().toArray(new String[0]);
 

@@ -60,7 +60,7 @@ public class PNNLProteomics
 
 
 
-	public static void prepareShortVsLongSurvival() throws IOException
+	public static void prepareShortVsLongSurvival() throws IOException, ClassNotFoundException
 	{
 		Map<String, Integer> map = Files.lines(Paths.get(CLINICAL_FILE)).skip(1).map(l -> l.split("\t"))
 			.filter(t -> !t[10].startsWith("N")).collect(Collectors.toMap(t -> t[0], t -> Integer.valueOf(t[10])));
@@ -84,7 +84,7 @@ public class PNNLProteomics
 		CausalPath.main(new String[]{subDir});
 	}
 
-	public static void prepareOldVersusYoung() throws IOException
+	public static void prepareOldVersusYoung() throws IOException, ClassNotFoundException
 	{
 		Map<String, Integer> map = Files.lines(Paths.get(CLINICAL_FILE)).skip(1).map(l -> l.split("\t"))
 			.collect(Collectors.toMap(t -> t[0], t -> Integer.valueOf(t[3])));
@@ -108,7 +108,7 @@ public class PNNLProteomics
 		CausalPath.main(new String[]{subDir});
 	}
 
-	public static void preparePlainumStatus() throws IOException
+	public static void preparePlainumStatus() throws IOException, ClassNotFoundException
 	{
 		Map<String, String> map = Files.lines(Paths.get(CLINICAL_FILE)).skip(1).map(l -> l.split("\t"))
 			.collect(Collectors.toMap(t -> t[0], t -> t[11]));
@@ -127,7 +127,7 @@ public class PNNLProteomics
 		CausalPath.main(new String[]{subDir});
 	}
 
-	public static void prepareSubtypeFolders(String SUBTYPES_FILE, String prefix) throws IOException
+	public static void prepareSubtypeFolders(String SUBTYPES_FILE, String prefix) throws IOException, ClassNotFoundException
 	{
 		System.out.println("prefix = " + prefix);
 		Set<String> samplesInPNNL = Arrays.stream(Files.lines(Paths.get(OUTPUT_FILE)).findFirst().get().split("\t"))
