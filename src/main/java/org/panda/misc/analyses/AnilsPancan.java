@@ -1,8 +1,15 @@
 package org.panda.misc.analyses;
 
-import org.biopax.paxtools.examples.GOUnificationXREFtoRelationshipXREFConverter;
 import org.panda.misc.MutexReader;
+import org.panda.resource.GO;
+import org.panda.resource.HGNC;
+import org.panda.resource.proteomics.RPPAIDMapper;
+import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
+import org.panda.utility.Memory;
+import org.panda.utility.ValToColor;
+import org.panda.utility.statistics.FDR;
+import org.panda.utility.statistics.GeneSetEnrichment;
 
 import java.awt.*;
 import java.io.BufferedWriter;
@@ -10,10 +17,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -21,14 +26,20 @@ import java.util.stream.Collectors;
  */
 public class AnilsPancan
 {
-	public static final String DIR = "/media/babur/6TB1/TCGA-pancan/";
+	public static final String DIR = "/media/ozgun/6TB/TCGA-pancan/";
 	public static final String MIX = "Mix";
 
 	public static void main(String[] args) throws IOException
 	{
 //		generateSampelToTissueMapping();
 //		generateComputeDirs();
-		generateSIFFormatFileForTP53PancanMutex();
+//		generateSIFFormatFileForTP53PancanMutex();
+
+		annotateGeneLisFor3GoTerms();
+
+//		printRasFamilyEnrichment();
+
+//		convertDataCentricToGeneCentric();
 	}
 
 	private static void generateSampelToTissueMapping() throws IOException
@@ -83,10 +94,14 @@ public class AnilsPancan
 		groups.forEach(g -> g.shortenLoc(mutexRoot + "/"));
 		groups.forEach(g -> g.fromDir = g.fromDir.split("/")[0].split("-")[0]);
 
+		int i = 0;
 		for (MutexReader.Group group : groups)
 		{
 			if (!group.genes.contains("TP53")) continue;
 			if (group.score > 0.01) continue;
+			i++;
+
+			Memory.printIfNew(group.fromDir);
 
 			for (String gene : group.genes)
 			{
@@ -94,6 +109,9 @@ public class AnilsPancan
 				else if (!geneToStudy.get(gene).equals(group.fromDir)) geneToStudy.put(gene, MIX);
 			}
 		}
+
+		System.out.println("total groups = " + i);
+		System.exit(0);
 
 		BufferedWriter writer = Files.newBufferedWriter(Paths.get(DIR + "network.format"));
 		writer.write("node\tall-nodes\tcolor\t255 255 255\n");
@@ -127,5 +145,115 @@ public class AnilsPancan
 		genes.forEach(g -> FileUtil.lnwrite(g, writer));
 
 		writer.close();
+	}
+
+	private static void annotateGeneLisFor3GoTerms() throws IOException
+	{
+		List<String> genes = Files.lines(Paths.get("/home/ozgun/Analyses/MCL1/GOI.txt")).collect(Collectors.toList());
+
+		Set<String> motilityGenes = new HashSet<>(GO.get().getGenesOfTerm("GO:2000147"));
+		motilityGenes.addAll(GO.get().getGenesOfTerm("GO:0016477"));
+		Set<String> adhesionGenes = GO.get().getGenesOfTerm("GO:0030155");
+		Set<String> lipidGenes = GO.get().getGenesOfTerm("GO:0006631");
+
+		genes.forEach(gene ->
+		{
+			System.out.print("\n" + gene + "\t");
+			if (lipidGenes.contains(gene)) System.out.print("1"); else System.out.print("0");
+			System.out.print("\t");
+			if (adhesionGenes.contains(gene)) System.out.print("1"); else System.out.print("0");
+			System.out.print("\t");
+			if (motilityGenes.contains(gene)) System.out.print("1"); else System.out.print("0");
+		});
+
+
+		Map<String, Double> pvals = GO.get().calculateEnrichment(genes, null, 200, Integer.MAX_VALUE);
+
+		List<String> select = FDR.select(pvals, null, 0.1);
+
+		select.forEach(go ->
+		{
+			String name = GO.get().getNameOfTerm(go);
+
+			Set<String> hit = new HashSet<>(genes);
+			hit.retainAll(GO.get().getGenes(go));
+
+			System.out.println(pvals.get(go) + "\t" + go + " " + name + "\t" + hit);
+		});
+	}
+
+	private static void printRasFamilyEnrichment() throws IOException
+	{
+		Map<String, Set<String>> geneSets = Files.lines(Paths.get("/home/ozgun/Analyses/MCL1/Ras-family.txt"))
+			.map(l -> l.split("\t"))
+			.collect(Collectors.toMap(t -> t[0], t -> new HashSet<>(Arrays.asList(t[1].split("; ")))));
+
+		geneSets.put("All", geneSets.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
+
+		Set<String> selected = Files.lines(Paths.get("/home/ozgun/Analyses/MCL1/GOI.txt")).collect(Collectors.toSet());
+
+//		selected.retainAll(geneSets.get("Rho"));
+//		System.out.println("selected.size() = " + selected.size());
+
+		Map<String, Double> pvals = GeneSetEnrichment.calculateEnrichment(selected, HGNC.get().getAllSymbols(), 1, 1000, geneSets);
+
+		pvals.keySet().stream().sorted(Comparator.comparing(pvals::get)).forEach(k -> System.out.println(k + "\t" + pvals.get(k)));
+	}
+
+	private static void convertDataCentricToGeneCentric() throws IOException
+	{
+		String dcSIFFile = "/home/ozgun/Downloads/Top20HCC1954TS48h3D.sif";
+		String dataFile = "/home/ozgun/Downloads/Top20HCC1954TS48h3D.txt";
+		String gcSIFFile = "/home/ozgun/Downloads/Top20HCC1954TS48h3D-gc.sif";
+		String formatFile = "/home/ozgun/Downloads/Top20HCC1954TS48h3D-gc.format";
+
+		BufferedWriter writer1 = Files.newBufferedWriter(Paths.get(gcSIFFile));
+		BufferedWriter writer2 = Files.newBufferedWriter(Paths.get(formatFile));
+		writer2.write("node\tall-nodes\tcolor\t255 255 255\n");
+		writer2.write("node\tall-nodes\tbordercolor\t50 50 50");
+
+		Files.lines(Paths.get(dcSIFFile)).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			String[] ab1 = RPPAIDMapper.get().getPlatformLine(t[0]);
+			String rel = t[1];
+			String[] ab2 = RPPAIDMapper.get().getPlatformLine(t[2]);
+
+			for (String source : ab1[1].split(" "))
+			{
+				for (String target : ab2[1].split(" "))
+				{
+					FileUtil.writeln(source + "\t" + rel + "\t" + target, writer1);
+				}
+			}
+		});
+
+		ValToColor vtc = new ValToColor(new double[]{-10, 0, 10}, new Color[]{Color.BLUE, Color.WHITE, Color.RED});
+
+		Files.lines(Paths.get(dataFile)).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			String[] ab = RPPAIDMapper.get().getPlatformLine(t[0]);
+			String[] genes = ab[1].split(" ");
+			for (int i = 0; i < genes.length; i++)
+			{
+				String gene = genes[i];
+
+				if (ab.length < 3 || ab[2].isEmpty())
+				{
+					FileUtil.lnwrite("node\t" + gene + "\tcolor\t" + vtc.getColorInString(Double.valueOf(t[1])),
+						writer2);
+				}
+				else
+				{
+					String site = ab[2].split(" ")[i].replaceAll("\\|", "_");
+					FileUtil.lnwrite("node\t" + gene + "\trppasite\t" + site + "|p|" +
+						vtc.getColorInString(Double.valueOf(t[1])) + "|" +
+						(ab[3].equals("i") ? "180 0 20" : ab[3].equals("a") ? "0 180 20" : "20 20 20") +
+						"|" + t[1], writer2);
+				}
+			}
+		});
+
+		writer1.close();
+		writer2.close();
 	}
 }

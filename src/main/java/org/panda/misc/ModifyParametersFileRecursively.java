@@ -22,6 +22,13 @@ public class ModifyParametersFileRecursively
 		modifyFilesRecursively(parentDir, lines -> replaceLine(lines, existingLine, modifiedLine));
 	}
 
+	/**
+	 * 0 is first line.
+	 * @param parentDir
+	 * @param newLine
+	 * @param row 0 is first line
+	 * @throws IOException
+	 */
 	public static void addToFiles(String parentDir, String newLine, int row) throws IOException
 	{
 		modifyFilesRecursively(parentDir, lines -> addLine(lines, newLine, row));
@@ -103,6 +110,24 @@ public class ModifyParametersFileRecursively
 		return files;
 	}
 
+	private static void removeAllButParametersFileRecursive(String path)
+	{
+		if (Files.exists(Paths.get(path + "/parameters.txt")))
+		{
+			for (File file : new File(path).listFiles())
+			{
+				if (!file.getName().endsWith("parameters.txt") && !file.getName().endsWith("data.txt")) file.delete();
+			}
+		}
+		else if (Files.isDirectory(Paths.get(path)))
+		{
+			for (File file : new File(path).listFiles())
+			{
+				if (file.isDirectory()) removeAllButParametersFileRecursive(file.getPath());
+			}
+		}
+	}
+
 	interface FileModifier
 	{
 		void alterLines(List<String> lines);
@@ -110,15 +135,13 @@ public class ModifyParametersFileRecursively
 
 	public static void main(String[] args) throws IOException
 	{
-		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/correlation-based-phospho-0.001-robustness";
-//		String dir = "/home/babur/Documents/RPPA/TCGA/PNNL/temp";
-//		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/subtypes";
+		String dir = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/correlation-based-phospho-site-match-proximity";
 
-//		replaceInFiles(dir, "fdr-threshold-for-data-significance = 0.5 phosphoprotein", "fdr-threshold-for-data-significance = 0.1 phosphoprotein");
-//		replaceInFiles(dir, "do-site-matching = false", "do-site-matching = true");
-		replaceInFiles(dir, "calculate-network-significance = true", "calculate-network-significance = false");
-//		replaceInFiles(dir, "use-missing-proteomic-data-for-test = true", "use-missing-proteomic-data-for-test = false");
-//		removeFromFiles(dir, "proteomics-platform-file = ../data-fdr0.1.txt");
-//		addToFiles(dir, "site-match-proximity-threshold = 2", 11);
+		replaceInFiles(dir, "proteomics-values-file = ../../PC3.txt", "proteomics-values-file = ../PC3.txt");
+//		replaceInFiles(dir, "show-all-genes-with-proteomic-data = true", "show-all-genes-with-proteomic-data = false");
+//		removeFromFiles(dir, "hgnc-file = ../../hgnc.txt");
+//		addToFiles(dir, "hgnc-file = ../../hgnc.txt", 18);
+
+//		removeAllButParametersFileRecursive("/home/ozgun/Analyses/CausalPath-paper/TCGA-RPPA");
 	}
 }

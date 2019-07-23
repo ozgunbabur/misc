@@ -75,7 +75,7 @@ public class ShowRNAseqSubtypeBias
 				double[] posVals = er.getGeneAlterationArray(gene, subArrays.get(type));
 				double[] negVals = er.getGeneAlterationArray(gene, negArrays.get(type));
 
-				Tuple result = TTest.test(posVals, negVals);
+				Tuple result = TTest.test(negVals, posVals);
 				tMap.get(gene).put(type, result);
 
 				valsMap.get(gene).put(type, posVals);

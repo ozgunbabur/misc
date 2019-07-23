@@ -1,5 +1,7 @@
 package org.panda.misc.analyses;
 
+import org.panda.resource.HGNC;
+import org.panda.resource.MGI;
 import org.panda.resource.SiteMappingMouseToHuman;
 import org.panda.resource.UniProtSequence;
 import org.panda.utility.CollectionUtil;
@@ -9,10 +11,9 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Ozgun Babur
@@ -45,29 +46,36 @@ public class PaulBPhosphoproteomics
 			List<String> sites = getModifications(markedPep, start);
 			String upID = UniProtSequence.get().getIDOfName(name);
 
-			List<String> hSites = new ArrayList<>();
-			for (String site : sites)
-			{
-				String hSite = SiteMappingMouseToHuman.get().map(upID, site);
-				if (hSite != null) hSites.add(hSite);
-			}
-			if (!hSites.isEmpty())
-			{
-				String symbol = hSites.iterator().next().split("-")[0];
-				String siteStr = collectSites(hSites);
+			Map<String, String> hSiteMap = new HashMap<>();
 
-				FileUtil.lnwrite(symbol + "-" + siteStr.replaceAll("\\|", "-") + "\t" + symbol + "\t" + siteStr + "\t\t" + fc,
+			Map<String, List<String>> mapping = SiteMappingMouseToHuman.get().mapToHumanSite(upID, sites.toArray(new String[sites.size()]));
+
+			String mSym = MGI.get().getSymbol(upID);
+			Set<String> hSyms = MGI.get().getCorrespondingHumanSymbols(mSym);
+
+			for (String hUP : mapping.keySet())
+			{
+				String sym = HGNC.get().getSymbol(hUP);
+				if (sym != null && hSyms.contains(sym))
+				{
+					hSiteMap.put(sym, CollectionUtil.merge(mapping.get(hUP), "|"));
+				}
+			}
+			if (!hSiteMap.isEmpty())
+			{
+				// todo continue
+
+				String syms = CollectionUtil.merge(hSiteMap.keySet().stream().sorted().collect(Collectors.toList()), " ");
+				String siteStr = CollectionUtil.merge(hSiteMap.keySet().stream().sorted().map(hSiteMap::get).collect(Collectors.toList()), " ");
+
+				String id = CollectionUtil.merge(hSiteMap.keySet().stream().sorted().map(sym -> sym + "-" + hSiteMap.get(sym).replaceAll("\\|", "-")).collect(Collectors.toList()), "-");
+
+				FileUtil.lnwrite(id + "\t" + syms + "\t" + siteStr + "\t\t" + fc,
 					writer);
 			}
 		});
 
 		writer.close();
-	}
-
-	private static String collectSites(Collection<String> genesWithSites)
-	{
-		List<String> sites = genesWithSites.stream().map(s -> s.split("-")[1]).collect(Collectors.toList());
-		return CollectionUtil.merge(sites, "|");
 	}
 
 	static int getStartPosition(String peptide, String uniprotName)

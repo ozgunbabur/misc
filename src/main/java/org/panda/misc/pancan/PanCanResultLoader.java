@@ -68,7 +68,7 @@ public class PanCanResultLoader
 		CollectionUtil.printNameMapping("CGC", "OncoKB");
 		CollectionUtil.printVennCounts(CancerGeneCensus.get().getAllSymbols(), OncoKB.get().getAllSymbols());
 
-//		genes.addAll(CancerGeneBushman.get().getAllSymbols());
+//		genes.addAll(CancerGeneBushman.get().getAllGenes());
 		return genes;
 	}
 

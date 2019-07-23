@@ -29,7 +29,7 @@ public class SIFPathwayGroupsAdder
 
 		Set<String> genes = lines.stream().map(l -> l.split("\t"))
 			.map(t -> t.length == 1 ? new String[]{t[0]} : new String[]{t[0], t[2]})
-			.flatMap(Arrays::stream).distinct().collect(Collectors.toSet());
+			.flatMap(Arrays::stream).collect(Collectors.toSet());
 
 		List<Group> groups = new ArrayList<>();
 

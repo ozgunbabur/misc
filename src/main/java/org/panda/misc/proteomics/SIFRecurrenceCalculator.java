@@ -22,8 +22,8 @@ public class SIFRecurrenceCalculator
 {
 	public static void main(String[] args) throws IOException
 	{
-		String base = "/home/babur/Documents/RPPA/TCGA/correlation/";
-//		prepareIntegratedSIFs(base, base + "recurrent");
+		String base = "/home/ozgun/Analyses/CausalPath-paper/TCGA-RPPA/";
+		prepareIntegratedSIFs(base, base + "recurrent");
 		plotRecurrenceHistogram(base, base + "recurrent");
 	}
 
@@ -44,11 +44,11 @@ public class SIFRecurrenceCalculator
 		int max = sifCnt.values().stream().reduce(0, Integer::max);
 		int maxGene = geneCnt.values().stream().reduce(0, Integer::max);
 
-		for (int i = max - 1; i > 0; i--)
+		for (int i = max; i > 0; i--)
 		{
-			ValToColor posVtc = new ValToColor(new double[]{i, max}, new Color[]{new Color(220, 255, 220), new Color(0, 80, 0)});
-			ValToColor negVtc = new ValToColor(new double[]{i, max}, new Color[]{new Color(255, 220, 220), new Color(80, 0, 0)});
-			ValToColor genVtc = new ValToColor(new double[]{i, maxGene}, new Color[]{new Color(220, 220, 220), new Color(0, 0, 0)});
+			ValToColor posVtc = new ValToColor(new double[]{i==max ? i-1 : i, max}, new Color[]{new Color(220, 255, 220), new Color(0, 80, 0)});
+			ValToColor negVtc = new ValToColor(new double[]{i==max ? i-1 : i, max}, new Color[]{new Color(255, 220, 220), new Color(80, 0, 0)});
+			ValToColor genVtc = new ValToColor(new double[]{i==max ? i-1 : i, maxGene}, new Color[]{new Color(220, 220, 220), new Color(0, 0, 0)});
 
 			BufferedWriter w1 = new BufferedWriter(new FileWriter(outDir + "/" + i + ".sif"));
 
@@ -120,11 +120,14 @@ public class SIFRecurrenceCalculator
 			.map(file -> file.getPath() + "/causative")
 			.forEach(pathWithoutExtension -> updateCounts(pathWithoutExtension, sifCnt, fmtCnt, geneCnt));
 
-		int[] h = new int[sifCnt.values().stream().max(Integer::compareTo).get()];
-		sifCnt.keySet().stream().filter(s -> !s.contains("phospho")).forEach(sif -> h[sifCnt.get(sif) - 1]++);
-		for (int i = 0; i < h.length; i++)
+		int[] hP = new int[sifCnt.values().stream().max(Integer::compareTo).get()];
+		int[] hE = new int[hP.length];
+		sifCnt.keySet().stream().filter(s -> !s.contains("phospho")).forEach(sif -> hE[sifCnt.get(sif) - 1]++);
+		sifCnt.keySet().stream().filter(s -> s.contains("phospho")).forEach(sif -> hP[sifCnt.get(sif) - 1]++);
+		System.out.println("Recurrence\tPhospho regulation\tExpression regulation");
+		for (int i = 0; i < hP.length; i++)
 		{
-			System.out.println((i + 1) + "\t" + h[i]);
+			System.out.println((i + 1) + "\t" + hP[i] + "\t" + hE[i]);
 		}
 	}
 }

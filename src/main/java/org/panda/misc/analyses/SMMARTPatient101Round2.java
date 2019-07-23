@@ -1,20 +1,11 @@
 package org.panda.misc.analyses;
 
-import org.panda.resource.RPPAIDMapper;
-import org.panda.utility.CollectionUtil;
-import org.panda.utility.FileUtil;
-import org.panda.utility.Tuple;
-import org.panda.utility.statistics.*;
-import org.panda.utility.statistics.trendline.PolyTrendLine;
-import org.panda.utility.statistics.trendline.TrendLine;
+import org.panda.resource.proteomics.RPPAIDMapper;
 
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Ozgun Babur

@@ -6,6 +6,7 @@ import org.panda.utility.statistics.Summary;
 import org.panda.utility.statistics.ZScore;
 
 import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -17,28 +18,45 @@ import java.util.stream.Collectors;
  */
 public class ShowRNAseqOnTCGADistribution
 {
-	static final String TCGA_FILE = "/home/babur/Documents/TCGA/BRCA/expression.txt";
+	static final String TCGA_FILE = "/home/ozgun/Data/TCGA/BRCA/expression.txt";
 	static final String IN_FILE = "/home/babur/Documents/Analyses/SMMART/Patient1/SMMART-101-RNA-seq-rawcounts.txt";
 	static final double LOG2 = Math.log(2D);
 	static final int SYM_INDEX = 1;
 	static final int[] VAL_INDEX = new int[]{2, 3, 4};
-	static String[] genes = new String[]{"SPRY1", "SPRY2", "RPTOR", "AKT3", "AKT2", "AKT1", "GADD45A", "MTOR", "PTEN"};
+	static String[] genes = new String[]{"ERBB3", "CELSR1", "PGR", "ICAM1", "ESR1", "ITGB6", "IL6ST", "AR", "GFRA3"};
 
 	public static void main(String[] args) throws IOException
 	{
+		plotTCGADistribution();
 //		plot();
 
 //		CustomExpressionReader reader = loadTCGABRCATPM();
 //		Set<String> samples = reader.getSamples();
 //		System.out.println("samples.size() = " + samples.size());
 
-		check();
+//		check();
 //		writePatientZScores();
+	}
+
+	public static void plotTCGADistribution() throws FileNotFoundException
+	{
+		HashSet<String> geneSet = new HashSet<>(Arrays.asList(genes));
+		ExpressionReader er = new ExpressionReader(TCGA_FILE, geneSet);
+		String[] samples = er.getSamples().toArray(new String[0]);
+
+		for (String gene : genes)
+		{
+			System.out.println("\ngene = " + gene);
+			Histogram h = new Histogram(1);
+			h.setBorderAtZero(true);
+			h.countAll(er.getGeneAlterationArray(gene, samples));
+			h.print();
+		}
 	}
 
 	public static void plot() throws IOException
 	{
-		HashSet<String> geneSet = new HashSet<>(Arrays.asList(ShowRNAseqOnTCGADistribution.genes));
+		HashSet<String> geneSet = new HashSet<>(Arrays.asList(genes));
 		ExpressionReader er = new ExpressionReader(TCGA_FILE, geneSet);
 		String[] samples = er.getSamples().toArray(new String[0]);
 
@@ -60,7 +78,7 @@ public class ShowRNAseqOnTCGADistribution
 			}
 		});
 
-		for (String gene : ShowRNAseqOnTCGADistribution.genes)
+		for (String gene : genes)
 		{
 			System.out.println("\n-------\n\ngene = " + gene);
 			double[] dist = er.getGeneAlterationArray(gene, samples);

@@ -19,7 +19,7 @@ public class DatasetSeparatorForTestingCPReproducibility
 {
 	public static void main(String[] args) throws IOException
 	{
-		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer77/correlation-based-phospho-0.1";
+		String dir = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/correlation-based-phospho";
 //		subset(dir, 0.5, 100);
 		plotReproducibility(dir);
 	}
@@ -41,7 +41,7 @@ public class DatasetSeparatorForTestingCPReproducibility
 			new File(dir).mkdirs();
 
 			BufferedWriter writer = Files.newBufferedWriter(Paths.get(dir + "/parameters.txt"));
-			commonLines.forEach(l -> FileUtil.writeln(l.replaceAll("\\.\\./", "../../").replaceAll("calculate-network-significance = true","calculate-network-significance = false"), writer));
+			commonLines.forEach(l -> FileUtil.writeln(l.replaceAll(" \\.\\./", " ../../").replaceAll("calculate-network-significance = true","calculate-network-significance = false"), writer));
 
 			Collections.shuffle(sampleLines);
 
@@ -59,10 +59,13 @@ public class DatasetSeparatorForTestingCPReproducibility
 		Set<String> original = Files.lines(Paths.get(dir + "/causative.sif")).map(l -> l.split("\t"))
 			.filter(t -> t.length > 2).map(t -> ArrayUtil.getString("\t", t[0], t[1], t[2])).collect(Collectors.toSet());
 
+		Set<String> newRels = new HashSet<>();
+
 		Map<String, Integer> relToCnt = new HashMap<>();
 		original.forEach(rel -> relToCnt.put(rel, 0));
 
 		File reproDir = new File(dir + "-reproducibility");
+		int n = 0;
 		for (File subDir : reproDir.listFiles())
 		{
 			if (!subDir.isDirectory()) continue;
@@ -70,10 +73,19 @@ public class DatasetSeparatorForTestingCPReproducibility
 			Set<String> subRels = Files.lines(Paths.get(subDir + "/causative.sif")).map(l -> l.split("\t"))
 				.filter(t -> t.length > 2).map(t -> ArrayUtil.getString("\t", t[0], t[1], t[2])).collect(Collectors.toSet());
 
+			n++;
+
 			subRels.forEach(rel ->
 			{
-				if (relToCnt.containsKey(rel)) relToCnt.put(rel, relToCnt.get(rel) + 1);
-				else relToCnt.put(rel, 1);
+				if (relToCnt.containsKey(rel))
+				{
+					relToCnt.put(rel, relToCnt.get(rel) + 1);
+				}
+				else
+				{
+					relToCnt.put(rel, 1);
+					newRels.add(rel);
+				}
 			});
 		}
 
@@ -89,13 +101,33 @@ public class DatasetSeparatorForTestingCPReproducibility
 		});
 
 		int max = relToCnt.values().stream().max(Integer::compare).get();
-		BufferedWriter writer = Files.newBufferedWriter(Paths.get(reproDir.getPath() + "/reproducibility-chart.txt"));
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(reproDir.getPath() + "/reproducibility-chart1.txt"));
 		writer.write("Reproduction count\tOriginal relation frequency\tNew relation frequency");
 		for (int i = 0; i <= max; i++)
 		{
 			writer.write("\n" + i + "\t" + (origHist.containsKey(i) ? origHist.get(i) : 0) + "\t" + (newHist.containsKey(i) ? newHist.get(i) : 0));
 		}
 
+		writer.close();
+
+
+		List<String> origList = new ArrayList<>(original);
+		origList.sort((o1, o2) -> relToCnt.get(o2).compareTo(relToCnt.get(o1)));
+
+		List<String> newList = new ArrayList<>(newRels);
+		newList.sort((o1, o2) -> relToCnt.get(o2).compareTo(relToCnt.get(o1)));
+
+		writer = Files.newBufferedWriter(Paths.get(reproDir.getPath() + "/reproducibility-chart2.txt"));
+		writer.write("Relation ratio\tOriginal relations\tNew relations");
+		for (int i = 0; i < origList.size(); i++)
+		{
+			writer.write("\n" + (i+1) + "\t" + relToCnt.get(origList.get(i)));
+		}
+
+		for (int i = 0; i < newList.size(); i++)
+		{
+			writer.write("\n" + (i+1) + "\t\t" + relToCnt.get(newList.get(i)));
+		}
 		writer.close();
 	}
 }

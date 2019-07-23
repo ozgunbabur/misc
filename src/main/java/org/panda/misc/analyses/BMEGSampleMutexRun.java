@@ -54,9 +54,9 @@ public class BMEGSampleMutexRun
 		});
 
 //		Set<String> cancerGenes = new HashSet<>();
-//		cancerGenes.addAll(CancerGeneCensus.get().getAllSymbols());
-//		cancerGenes.addAll(OncoKB.get().getAllSymbols());
-//		cancerGenes.addAll(CancerGeneBushman.get().getAllSymbols());
+//		cancerGenes.addAll(CancerGeneCensus.get().getAllGenes());
+//		cancerGenes.addAll(OncoKB.get().getAllGenes());
+//		cancerGenes.addAll(CancerGeneBushman.get().getAllGenes());
 
 		geneScores.keySet().stream().filter(k -> geneScores.get(k) < scoreThrRelax).filter(k -> geneToType.get(k).size() >= minTypeCnt || geneScores.get(k) < scoreThrTight)
 			.sorted((k1, k2) -> geneScores.get(k1).compareTo(geneScores.get(k2)))

@@ -18,18 +18,18 @@ import java.util.*;
  */
 public class ProteinAndRNACorrelation
 {
-	public static final String DIR = "/home/babur/Documents/RPPA/TCGA/PNNL/";
-	public static final String PROTEOMIC_FILE = DIR + "PNLL-causality-formatted.txt";
+//	public static final String DIR = "/home/babur/Documents/RPPA/TCGA/PNNL/";
+//	public static final String PROTEOMIC_FILE = DIR + "PNLL-causality-formatted.txt";
 
-//	public static final String DIR = "/home/babur/Documents/Analyses/CPTACBreastCancer77/";
-//	public static final String PROTEOMIC_FILE = DIR + "CPTAC-TCGA-BRCA-data.txt";
+	public static final String DIR = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/";
+	public static final String PROTEOMIC_FILE = DIR + "CPTAC-TCGA-BRCA-data-77.txt";
 
 	public static final String EXPRESSION_FILE = DIR + "expression.txt";
 	public static final String OUT_FILE = DIR + "rna-prot-correlation.txt";
 
 	public static void main(String[] args) throws IOException
 	{
-		ExpressionReader er = new ExpressionReader(EXPRESSION_FILE, null, DIR.contains("Breast") ? 16 : 12);
+		ExpressionReader er = new ExpressionReader(EXPRESSION_FILE, null, 12);
 		Set<String> expSamples = er.getSamples();
 		List<String> sampleList = getProteomicSamples(PROTEOMIC_FILE);
 		sampleList.retainAll(expSamples);

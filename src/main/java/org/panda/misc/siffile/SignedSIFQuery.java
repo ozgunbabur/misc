@@ -304,17 +304,24 @@ public class SignedSIFQuery
 //		String dir = "/home/babur/Documents/Analyses/Aslan/platelet-second-pass/fdr0.1-nositematch/";
 //		neighborhoodFromFile(dir + "causative.sif", Collections.singleton("PRKCQ"), dir + "causative-PRKCQ.sif");
 
-		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer77/subtypes/PAM50/LuminalAB-vs-Basal-like/";
-//		Set<String> genes = loadSignificantGenes(dir + "significance-pvals.txt");
-		Set<String> genes = new HashSet<>(Arrays.asList("ESR1"));
+//		String dir = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/subtypes/LumAB-vs-Basal/";
+		String dir = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-OV/correlation-based-expression-using-rnaseq/";
+		Set<String> genes = loadSignificantGenes(dir + "significance-pvals.txt");
+		System.out.println("genes = " + genes);
+//		Set<String> genes = new HashSet<>(Arrays.asList("ESR1"));
 
-//		Set<String> genes = new HashSet<>(OncoKB.get().getAllSymbols());
-//		genes.addAll(CancerGeneCensus.get().getAllSymbols());
+//		Set<String> genes = new HashSet<>(OncoKB.get().getAllGenes());
+//		genes.addAll(CancerGeneCensus.get().getAllGenes());
 
-		streamOverGenes(dir + "causative.sif", genes, dir + "causative-ESR1-neighborhood.sif", 5, 0);
+//		streamOverGenes(dir + "causative.sif", genes, dir + "causative-ESR1-neighborhood.sif", 5, 0);
+//		FileUtil.writeLinesToFile(chooseRelevantLinesFromFormatFile(dir + "causative.format",
+//			getDataIDsFromDataCentricSIF(dir + "causative-data-centric.sif", dir + "causative-ESR1-neighborhood.sif")),
+//			dir + "causative-ESR1-neighborhood.format");
+
+		streamOverGenes(dir + "causative.sif", genes, dir + "causative-subset.sif", 1, 0);
 		FileUtil.writeLinesToFile(chooseRelevantLinesFromFormatFile(dir + "causative.format",
-			getDataIDsFromDataCentricSIF(dir + "causative-data-centric.sif", dir + "causative-ESR1-neighborhood.sif")),
-			dir + "causative-ESR1-neighborhood.format");
+			getDataIDsFromDataCentricSIF(dir + "causative-data-centric.sif", dir + "causative-subset.sif")),
+			dir + "causative-subset.format");
 
 //		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/correlation-based/";
 //		String inFile = dir + "causative-data-centric.sif";

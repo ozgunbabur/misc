@@ -1,5 +1,7 @@
 package org.panda.misc.proteomics;
 
+import org.panda.resource.GO;
+import org.panda.resource.tcga.ExpressionReader;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.Tuple;
 import org.panda.utility.statistics.*;
@@ -33,11 +35,13 @@ public class InspectPhosphoproteomicsData
 //		displayCorrelationForPeptides("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "ATM-S1981", "BRCA1-S1524");
 //		printSampleGroupsSeparatedByAPeptide("/home/babur/Documents/Analyses/CPTACBreastCancer/CPTAC-TCGA-BRCA-data.txt", "BRAF-S151");
 
-		printCorrelationsOfSpecificGenes("/home/babur/Documents/Analyses/CPTACBreastCancer77/CPTAC-TCGA-BRCA-data.txt", "DYRK1B", "/home/babur/Documents/Temp/BRCA");
+//		printCorrelationsOfSpecificGenes("/home/babur/Documents/Analyses/CPTACBreastCancer77/CPTAC-TCGA-BRCA-data.txt", "DYRK1B", "/home/babur/Documents/Temp/BRCA");
 
 //		loadData();
 //		loadGroups();
 //		writeDistribution(PLOT);
+
+		printSubtypeSpecificExpression();
 	}
 
 	static void writeDistribution(String file) throws IOException
@@ -341,6 +345,91 @@ public class InspectPhosphoproteomicsData
 				writer.write("\n" + id1 + "\t" + tupToID.get(tup) + "\t" + tup.v + "\t" + tup.p);
 			}
 			writer.close();
+		}
+	}
+
+	public static void printSubtypeSpecificExpression() throws IOException
+	{
+		String protFile = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/CPTAC-TCGA-BRCA-data-77.txt";
+
+		Map<String, String> sampleToSubtype = Files.lines(
+			Paths.get("/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/CPTAC_BC_SupplementaryTable01.csv"))
+			.skip(1).map(l -> l.split("\t")).collect(Collectors.toMap(t -> t[1], t-> t[5]));
+
+		String focus = "Positive";
+		Set<String> genes = GO.get().getGenes("GO:0038023");
+
+		String[] header = Files.lines(Paths.get(protFile)).findFirst().get().split("\t");
+
+		Map<String, Double> pvals = new HashMap<>();
+		Map<String, Double> diffs = new HashMap<>();
+
+		Files.lines(Paths.get(protFile)).skip(1).map(l -> l.split("\t")).filter(t -> genes.contains(t[1])).forEach(t ->
+		{
+			String id = t[0];
+			List<Double> ctrlList = new ArrayList<>();
+			List<Double> testList = new ArrayList<>();
+			for (int i = 4; i < t.length; i++)
+			{
+				if (t[i].equals("NaN")) continue;
+
+				List<Double> list = sampleToSubtype.get(header[i]).equals(focus) ? testList : ctrlList;
+				list.add(Double.valueOf(t[i]));
+			}
+
+			double[] ctrl = ArrayUtil.convertToBasicDoubleArray(ctrlList);
+			double[] test = ArrayUtil.convertToBasicDoubleArray(testList);
+
+			if (ctrl.length < 3 || test.length < 3) return;
+
+			double diff = Summary.mean(test) - Summary.mean(ctrl);
+			double pval = TTest.getPValOfMeanDifference(ctrl, test);
+
+			pvals.put(id, pval);
+			diffs.put(id, diff);
+		});
+
+		List<String> select = FDR.select(pvals, null, 0.1);
+
+		for (String id : select)
+		{
+			System.out.println(id + "\t" + pvals.get(id) + "\t" + diffs.get(id));
+		}
+
+		// check if similar changes happen in RNAseq
+
+		pvals.clear();
+		diffs.clear();
+
+		Set<String> selGenes = select.stream().filter(g -> !g.contains("-")).collect(Collectors.toSet());
+
+		ExpressionReader er = new ExpressionReader("/home/ozgun/Data/TCGA/BRCA/expression.txt", selGenes, 12);
+		Set<String> expSamples = er.getSamples();
+		expSamples.retainAll(sampleToSubtype.keySet());
+
+		String[] ctrlSamples = sampleToSubtype.keySet().stream().filter(s -> !sampleToSubtype.get(s).equals(focus)).toArray(String[]::new);
+		String[] testSamples = sampleToSubtype.keySet().stream().filter(s ->  sampleToSubtype.get(s).equals(focus)).toArray(String[]::new);
+
+		selGenes.forEach(gene ->
+		{
+			double[] ctrl = er.getGeneAlterationArray(gene, ctrlSamples);
+			double[] test = er.getGeneAlterationArray(gene, testSamples);
+
+			if (ctrl.length < 3 || test.length < 3) return;
+
+			double diff = Summary.mean(test) - Summary.mean(ctrl);
+			double pval = TTest.getPValOfMeanDifference(ctrl, test);
+
+			pvals.put(gene, pval);
+			diffs.put(gene, diff);
+		});
+
+		select = FDR.select(pvals, null, 0.1);
+
+		System.out.println("\n");
+		for (String id : select)
+		{
+			System.out.println(id + "\t" + pvals.get(id) + "\t" + diffs.get(id));
 		}
 	}
 }

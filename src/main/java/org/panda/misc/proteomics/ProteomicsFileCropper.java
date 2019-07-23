@@ -47,8 +47,10 @@ public class ProteomicsFileCropper
 
 	public static void main(String[] args) throws IOException
 	{
-		String dir = "/home/babur/Documents/Analyses/CPTACBreastCancer/";
-		Set<String> samples = Files.lines(Paths.get(dir + "samples-77.txt")).collect(Collectors.toSet());
-		crop(dir + "CPTAC-TCGA-BRCA-data.txt", dir + "CPTAC-TCGA-BRCA-data-77.txt", samples);
+		String dir = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/";
+		Set<String> samples = Files.lines(Paths.get(dir + "high-quality-sample-names.txt")).collect(Collectors.toSet());
+//		crop(dir + "CPTAC-TCGA-BRCA-data.txt", dir + "CPTAC-TCGA-BRCA-data-77.txt", samples);
+
+		samples.forEach(s -> System.out.println("value-column = " + s));
 	}
 }

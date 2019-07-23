@@ -1,6 +1,8 @@
 package org.panda.misc;
 
 
+import org.panda.utility.FileUtil;
+
 import java.io.*;
 import java.util.*;
 
@@ -22,10 +24,10 @@ public class OncoprintSVGGenerator
 //					"......................M....................................................................AAAAAAA";
 //		write(s, "temp.svg");
 
-		String dir = "/home/babur/Documents/mutex/TCGA/BRCA/outliers-excluded/fries290K-leidos-PC2v7/";
-		generate((
-			"HUS1B, PTEN, PIK3CA").split(", "), dir + "../DataMatrix.txt", dir + "HUS1B.svg",
-			false);
+//		String dir = "/home/babur/Documents/mutex/TCGA/BRCA/outliers-excluded/fries290K-leidos-PC2v7/";
+//		generate((
+//			"HUS1B, PTEN, PIK3CA").split(", "), dir + "../DataMatrix.txt", dir + "HUS1B.svg",
+//			false);
 
 
 
@@ -34,6 +36,13 @@ public class OncoprintSVGGenerator
 //		{
 //			generateAllOncoprintsFromGroupRankingFile(dir.replace("?", "" + i), 0.01, true);
 //		}
+
+//		String dir = "/home/ozgun/Documents/Temp/mssng-ssc-autism/";
+//		String[] genes = FileUtil.getTermsInTabDelimitedColumnOrdered(dir + "Reactome-mssng-ssc-autism/results-circadian-members-table.txt", 1, 1).toArray(new String[0]);
+//		generate(genes, dir + "matrix.txt", dir + "mutprint-circadian.svg", false);
+
+		String dir = "/home/ozgun/Documents/Grants/NIMH/fig-aim2-chibe/";
+		generate(null, dir + "B-matrix.txt", dir + "B-upstr.svg", true);
 	}
 
 	public static void generateAllOncoprintsFromGroupRankingFile(String dir, double thr, boolean includeUnaltered)
@@ -156,7 +165,11 @@ public class OncoprintSVGGenerator
 							break;
 						}
 					}
-					if (!b) break;
+					if (!b)
+					{
+						System.out.println("j=" + j + ", size=" + order.size() + ", ratio=" + (j / (double) order.size()));
+						break;
+					}
 				}
 
 				sb.append(letterCode(matrix[i][sample]));
@@ -181,6 +194,11 @@ public class OncoprintSVGGenerator
 
 	private static int[][] readFromMatrixFile(String[] genes, String file) throws FileNotFoundException
 	{
+		if (genes == null)
+		{
+			genes = FileUtil.getTermsInTabDelimitedColumnOrdered(file, 0, 1).toArray(new String[0]);
+		}
+
 		Set<String> set = new HashSet<String>(Arrays.asList(genes));
 		int[][] x = new int[genes.length][];
 		Scanner sc = new Scanner(new File(file));
@@ -235,38 +253,34 @@ public class OncoprintSVGGenerator
 			cna[i] = getCNAltered(matrix[i]);
 		}
 
-		Collections.sort(order, new Comparator<Integer>()
+		Collections.sort(order, (o1, o2) ->
 		{
-			@Override
-			public int compare(Integer o1, Integer o2)
+			boolean[] m1 = marks[o1];
+			boolean[] m2 = marks[o2];
+
+			int c = 0;
+			for (int i = 0; i < geneSize; i++)
 			{
-				boolean[] m1 = marks[o1];
-				boolean[] m2 = marks[o2];
-
-				int c = 0;
-				for (int i = 0; i < geneSize; i++)
-				{
-					if (m1[i] && !m2[i]) c = -1;
-					if (!m1[i] && m2[i]) c = 1;
-					if (c != 0) break;
-				}
-
-				if (c != 0)
-				{
-					if (getNumberOfInitialPositiveAltOverlap(m1, m2) % 2 == 1) return -c;
-					else return c;
-				}
-
-				for (int i = 0; i < geneSize; i++)
-				{
-					if (mut[i][o1] && !mut[i][o2]) return -1;
-					if (!mut[i][o1] && mut[i][o2]) return 1;
-					if (cna[i][o1] && !cna[i][o2]) return 1;
-					if (!cna[i][o1] && cna[i][o2]) return -1;
-				}
-
-				return 0;
+				if (m1[i] && !m2[i]) c = -1;
+				if (!m1[i] && m2[i]) c = 1;
+				if (c != 0) break;
 			}
+
+			if (c != 0)
+			{
+				if (getNumberOfInitialPositiveAltOverlap(m1, m2) % 2 == 1) return -c;
+				else return c;
+			}
+
+			for (int i = 0; i < geneSize; i++)
+			{
+				if (mut[i][o1] && !mut[i][o2]) return -1;
+				if (!mut[i][o1] && mut[i][o2]) return 1;
+				if (cna[i][o1] && !cna[i][o2]) return 1;
+				if (!cna[i][o1] && cna[i][o2]) return -1;
+			}
+
+			return 0;
 		});
 
 		return order;

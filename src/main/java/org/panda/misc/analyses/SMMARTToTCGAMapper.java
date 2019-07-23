@@ -1,6 +1,6 @@
 package org.panda.misc.analyses;
 
-import org.panda.resource.RPPAIDMapper;
+import org.panda.resource.proteomics.RPPAIDMapper;
 import org.panda.utility.FileUtil;
 import org.panda.utility.statistics.ZScore;
 import org.panda.utility.statistics.trendline.PolyTrendLine;

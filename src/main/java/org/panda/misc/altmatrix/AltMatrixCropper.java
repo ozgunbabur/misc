@@ -52,7 +52,7 @@ public class AltMatrixCropper
 	public static void main(String[] args) throws IOException
 	{
 		crop("/media/babur/6TB1/TCGA-pancan/whole/TP53-neighborhood/DataMatrix-TP53-neighborhood-with-extra-samples.txt", null,
-			FileUtil.getTermsInTabDelimitedColumn("/media/babur/6TB1/TCGA-pancan/sample-to-tissue-mapping.txt", 0),
+			FileUtil.getTermsInTabDelimitedColumn("/media/babur/6TB1/TCGA-pancan/sample-to-tissue-mapping.txt", 0, 1),
 			"/media/babur/6TB1/TCGA-pancan/whole/TP53-neighborhood/DataMatrix-TP53-neighborhood.txt");
 	}
 }

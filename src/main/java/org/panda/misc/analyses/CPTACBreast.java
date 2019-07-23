@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
  */
 public class CPTACBreast
 {
-	public static final String DIR = "/home/babur/Documents/Analyses/CPTACBreastCancer/";
+	public static final String DIR = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/";
 	public static final String PROT_FILE = DIR + "Proteome/TCGA_Breast_BI_Proteome.itraq.tsv";
 	public static final String PHOS_FILE = DIR + "Phosphoproteome/TCGA_Breast_BI_Phosphoproteome.phosphosite.itraq.tsv";
-	public static final String SUBTYPE_FILE = DIR + "Metadata/CPTAC_TCGA_BreastCancer_select_clinical_data_r1.csv";
-	public static final String CP_FILE = DIR + "CPTAC-TCGA-BRCA-data.txt";
+	public static final String SUBTYPE_FILE = DIR + "CPTAC_BC_SupplementaryTable01.csv";
+	public static final String CP_FILE = DIR + "CPTAC-TCGA-BRCA-data-77.txt";
 
 	public static void main(String[] args) throws IOException
 	{
@@ -203,7 +203,7 @@ public class CPTACBreast
 		return sum / cnt;
 	}
 
-	static final String PARAMS = "proteomics-values-file = ../../../CPTAC-TCGA-BRCA-data.txt\n" +
+	static final String PARAMS = "proteomics-values-file = ../../CPTAC-TCGA-BRCA-data-77.txt\n" +
 		"id-column = ID\n" +
 		"symbols-column = Symbols\n" +
 		"sites-column = Sites\n" +
@@ -216,12 +216,16 @@ public class CPTACBreast
 		"\n" +
 		"minimum-sample-size = 3\n" +
 		"\n" +
-		"#relation-filter-type = phospho-only\n" +
+//		"#relation-filter-type = phospho-only\n" +
 		"color-saturation-value = 10\n" +
 		"show-insignificant-data = false\n" +
 		"\n" +
 		"calculate-network-significance = false\n" +
-		"permutations-for-significance = 100\n";
+		"permutations-for-significance = 10000\n" +
+		"\n" +
+		"hgnc-file = ../../../hgnc.txt\n" +
+		"custom-causal-priors-file = ../../../causal-priors.txt\n" +
+		"custom-site-effects-file = ../../../site-effects.txt\n";
 
 	static void printAllSamples() throws IOException
 	{
@@ -233,17 +237,16 @@ public class CPTACBreast
 
 	static void printGroups() throws IOException
 	{
-		// Pam50 = 20, RPPA = 25, Stage = 12
-		Map<String, String> subMap = Files.lines(Paths.get(SUBTYPE_FILE)).skip(6).map(l -> l.split("\t"))
-			.collect(Collectors.toMap(t -> t[0] + "-01A", t -> t[20].replaceAll(" ", "")//.replaceAll("/", "").replaceAll("A", "").replaceAll("B", "").replaceAll("C", "")
-			));
+		// Pam50 = 4
+		Map<String, String> subMap = Files.lines(Paths.get(SUBTYPE_FILE)).skip(1).map(l -> l.split("\t"))
+			.collect(Collectors.toMap(t -> t[1], t -> t[4]));
 
-		List<String> samples = getIndicesMap(readHeader(PROT_FILE)).keySet().stream().sorted()
-			.collect(Collectors.toList());
+		List<String> samples = Arrays.stream(Files.lines(Paths.get(CP_FILE)).findFirst().get().split("\t"))
+			.skip(4).collect(Collectors.toList());
 
-		String base = "/home/babur/Documents/Analyses/CPTACBreastCancer/subtypes/PAM50/";
+		String base = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/subtypes/";
 
-		if (false)
+		if (true)
 		{
 			// against all others
 			subMap.values().stream().distinct().forEach(type ->
@@ -278,7 +281,7 @@ public class CPTACBreast
 
 		if (true)
 		{
-			String dirName = base + "LuminalAB-vs-Basal-like";
+			String dirName = base + "LumAB-vs-Basal";
 			System.out.println("\n" + dirName);
 			new File(dirName).mkdirs();
 
@@ -286,8 +289,8 @@ public class CPTACBreast
 			FileUtil.write(PARAMS, writer);
 
 			printGroupsCompareTwo(subMap, samples, writer,
-				new String[]{"LuminalA", "LuminalB"},
-				new String[]{"Basal-like"});
+				new String[]{"LumA", "LumB"},
+				new String[]{"Basal"});
 
 			FileUtil.closeWriter(writer);
 		}
