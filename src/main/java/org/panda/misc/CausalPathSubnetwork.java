@@ -25,7 +25,8 @@ public class CausalPathSubnetwork
 {
 	public static void main(String[] args) throws IOException
 	{
-		generateNeighborhoodSubgraphsForSignificantsRecursively("/home/ozgun/Analyses/Jaffe", 0.1);
+		printSignificantGenesRecursively("/home/ozgun/Analyses/HillPaper/InhibitorEffects", 0.1);
+//		generateNeighborhoodSubgraphsForSignificantsRecursively("/home/ozgun/Analyses/Jaffe", 0.1);
 //		if (true) System.exit(0);
 
 //		String dir = "/home/ozgun/Analyses/Aslan-platelet/with-feedback-more-hyp-added/";
@@ -112,6 +113,11 @@ public class CausalPathSubnetwork
 
 	public static void printSignificantGenesRecursively(String dir, double netSig) throws IOException
 	{
+		printSignificantGenesRecursively(dir, dir, netSig);
+	}
+
+	public static void printSignificantGenesRecursively(String dir, String root, double netSig) throws IOException
+	{
 		String sigFile = dir + "/significance-pvals.txt";
 		if (Files.exists(Paths.get(sigFile)))
 		{
@@ -123,7 +129,7 @@ public class CausalPathSubnetwork
 
 			if (!sorted.isEmpty())
 			{
-				System.out.println(dir.substring(dir.lastIndexOf("/") + 1) + "\t" + CollectionUtil.merge(sorted, ", "));
+				System.out.println(dir.replace(root, "") + "\t" + CollectionUtil.merge(sorted, ", "));
 			}
 		}
 		else
@@ -132,7 +138,7 @@ public class CausalPathSubnetwork
 			{
 				if (subdir.isDirectory())
 				{
-					printSignificantGenesRecursively(subdir.getPath(), netSig);
+					printSignificantGenesRecursively(subdir.getPath(), root, netSig);
 				}
 			}
 		}
