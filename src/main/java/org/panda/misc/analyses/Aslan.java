@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Ozgun Babur
@@ -43,7 +44,8 @@ public class Aslan
 //		convertIndividualYoungs();
 
 //		printOtherPenaltied();
-		listDarkPhosphoproteome();
+//		listDarkPhosphoproteome();
+		printStatisticsFromDataFile();
 	}
 
 	static void convertPhosphoproteomics() throws IOException
@@ -697,5 +699,112 @@ public class Aslan
 		}
 
 		return effect;
+	}
+
+	private static void printStatisticsFromDataFile() throws IOException
+	{
+		String dir = "/Users/ozgun/Documents/Analyses/Aslan-platelet/";
+		int[] cnt = new int[4];
+		int rows = 0;
+		int upreg = 1;
+		int downreg = 2;
+		int overlapInd = 3;
+		Set<String> ids1 = new HashSet<>();
+		Set<String> ids2 = new HashSet<>();
+		Set<String> prots1 = new HashSet<>();
+		Set<String> prots2 = new HashSet<>();
+
+		Set<String> woOld = readSIF(dir + "without-feedback-relax1aa/causative.sif");
+		Set<String> woNew = readSIF(dir + "without-feedback-relax1aa-copy/causative.sif");
+		CollectionUtil.printVennCounts(woOld, woNew);
+		woOld.removeAll(woNew);
+		woOld.forEach(System.out::println);
+
+		System.out.println();
+
+		Files.lines(Paths.get(dir + "without-feedback-relax1aa/data-fdr0.1.txt")).skip(1)
+			.map(l -> l.split("\t")).forEach(t ->
+		{
+			cnt[rows]++;
+			if (!t[4].equals("0.0"))
+			{
+				if (t[4].startsWith("-")) cnt[downreg]++;
+				else cnt[upreg]++;
+			}
+			String[] tt = t[0].split("_");
+			for (int i = 1; i < tt.length; i++)
+			{
+				ids1.add(tt[0] + "_" + tt[i]);
+			}
+			for (String sym : t[1].split(" "))
+			{
+				prots1.add(sym);
+			}
+		});
+
+		System.out.println("cnt[rows] = " + cnt[rows]);
+		System.out.println("cnt[upreg] = " + cnt[upreg]);
+		System.out.println("cnt[downreg] = " + cnt[downreg]);
+
+		for (int i = 0; i < 3; i++)
+		{
+			cnt[i] = 0;
+		}
+
+		System.out.println();
+		Set<String> wOld = readSIF(dir + "with-feedback-relax1aa/causative.sif");
+		Set<String> wNew = readSIF(dir + "with-feedback-relax1aa-copy/causative.sif");
+		CollectionUtil.printVennCounts(wOld, wNew);
+		wOld.removeAll(wNew);
+		wOld.forEach(System.out::println);
+
+
+		Files.lines(Paths.get(dir + "with-feedback-relax1aa/data-fdr0.1.txt")).skip(1)
+			.map(l -> l.split("\t")).forEach(t ->
+		{
+			cnt[rows]++;
+			if (!t[4].equals("0.0"))
+			{
+				if (t[4].startsWith("-")) cnt[downreg]++;
+				else cnt[upreg]++;
+			}
+			String[] tt = t[0].split("_");
+			boolean counted = false;
+			for (int i = 1; i < tt.length; i++)
+			{
+				String key = tt[0] + "_" + tt[i];
+				ids2.add(key);
+
+				if (!counted && ids1.contains(key))
+				{
+					cnt[overlapInd]++;
+					counted = true;
+				}
+			}
+			for (String sym : t[1].split(" "))
+			{
+				prots2.add(sym);
+			}
+		});
+
+		System.out.println("\ncnt[rows] = " + cnt[rows]);
+		System.out.println("cnt[upreg] = " + cnt[upreg]);
+		System.out.println("cnt[downreg] = " + cnt[downreg]);
+
+		System.out.println("ids1.size() = " + ids1.size());
+		System.out.println("ids2.size() = " + ids2.size());
+		System.out.println();
+		CollectionUtil.printVennCounts(ids1, ids2);
+
+		System.out.println("\ncnt[overlapInd] = " + cnt[overlapInd]);
+
+		System.out.println("\nprots1 = " + prots1.size());
+		System.out.println("prots2 = " + prots2.size());
+		CollectionUtil.printVennCounts(prots1, prots2);
+	}
+
+	private static Set<String> readSIF(String file) throws IOException
+	{
+		return Files.lines(Paths.get(file)).map(l -> l.split("\t")).filter(t -> t.length > 2).map(t -> ArrayUtil.getString("\t", t[0], t[1], t[2])).collect(Collectors.toSet());
 	}
 }

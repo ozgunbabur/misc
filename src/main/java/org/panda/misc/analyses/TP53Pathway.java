@@ -1,31 +1,88 @@
 package org.panda.misc.analyses;
 
-import org.panda.resource.network.SignedPCNoTransfac;
-import org.panda.resource.signednetwork.SignedType;
-import org.panda.utility.graph.DirectedGraph;
-//import org.pathwaycommons.sif.model.SIFGraph;
+import org.panda.misc.MutexReader;
+import org.panda.utility.FileUtil;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Ozgun Babur
  */
 public class TP53Pathway
 {
-//	static SIFGraph load()
-//	{
-//		SIFGraph sifg = new SIFGraph();
-//
-//		DirectedGraph graph = SignedPCNoTransfac.get().getGraph(SignedType.PHOSPHORYLATES);
-//
-//		return null;
-//	}
-//
-//	static void addRelations(DirectedGraph graph, SIFGraph sifg, String type)
-//	{
-//	}
-//
-//	public static final Set<String> GENES = new HashSet<>(Arrays.asList("TP53 ATF3 ATM ATR AURKA BAK1 BRCA1 BRCA2 BRD7 CCNG1 CDK2 CDKN2A CHD8 CHEK1 CHEK2 CREBBP CSE1L CSNK1A1 CSNK1D CSNK1E DAXX DNMT3A DYRK2 E4F1 EP300 FBXO11 GPS2 GSK3B HIPK1 HIPK2 HIPK2 HUWE1 ING1 KAT2B KAT5 KAT8 KMT5A MAPK14 MAPK8 MAPK9 MDM2 MDM4 NEDD8 NOTCH1 PIN1 PLK1 PPM1D PPP1R13B PPP1R13L PPP2CA PRKCD PRMT5 PTEN PTPA RASSF1 RCHY1 RFWD2 RPL11 RPL23 RPL5 RPS6KA3 SETD2 SETD7 SKP2 SMARCA4 SMARCB1 SMYD2 STK11 TP53AIP1 TP53BP1 TP53BP2 TP53RK TRIM28 TTC5 UBE2D1 UBE3A USP7 VHL WT1 WWOX XPO1 YY1".split(" ")));
+	public static final String DIR = "/Users/ozgun/Documents/Analyses/TP53-mutex/";
+
+	public static void main(String[] args) throws IOException
+	{
+//		generateMatrices();
+		readResults();
+	}
+
+	public static void generateMatrices() throws IOException
+	{
+//		Set<String> cases = Files.lines(Paths.get(DIR + "pancan_samples.txt")).skip(1).map(l -> l.split("\t")[0]).collect(Collectors.toSet());
+//		System.out.println("cases.size() = " + cases.size());
+
+		Map<String, Set<String>> studyMap = new HashMap<>();
+		Files.lines(Paths.get(DIR + "pancan_samples.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			if (!studyMap.containsKey(t[2])) studyMap.put(t[2], new HashSet<>());
+			studyMap.get(t[2]).add(t[0]);
+		});
+
+		System.out.println("studyMap.size() = " + studyMap.size());
+
+
+		Map<String, Set<String>> caseToGenes = new HashMap<>();
+
+		Files.lines(Paths.get(DIR + "TP53_AssocGenehotspot_input.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			if (!caseToGenes.containsKey(t[1])) caseToGenes.put(t[1], new HashSet<>());
+			caseToGenes.get(t[1]).add(t[0]);
+		});
+
+		Files.lines(Paths.get(DIR + "TP53count_mut_tcgaHs.txt")).skip(1).map(l -> l.split("\t")[0]).forEach(c ->
+		{
+			if (!caseToGenes.containsKey(c)) caseToGenes.put(c, new HashSet<>());
+			caseToGenes.get(c).add("TP53");
+		});
+
+
+		for (String study : studyMap.keySet())
+		{
+			String dir = DIR + study;
+			Files.createDirectories(Paths.get(dir));
+
+			BufferedWriter writer = new BufferedWriter(new FileWriter(dir + "/matrix.txt"));
+			writer.write("Gene");
+
+			Set<String> caseNames = studyMap.get(study);
+			Set<String> genes = caseToGenes.keySet().stream().filter(caseNames::contains).map(caseToGenes::get).flatMap(Collection::stream).collect(Collectors.toSet());
+
+			caseNames.stream().sorted().forEach(c -> FileUtil.tab_write(c, writer));
+
+			genes.stream().sorted().forEach(g ->
+			{
+				FileUtil.lnwrite(g, writer);
+
+				caseNames.stream().sorted().forEach(c -> FileUtil.tab_write(caseToGenes.getOrDefault(c, Collections.emptySet()).contains(g) ? "1" : "0", writer));
+			});
+
+			writer.close();
+		}
+	}
+
+	public static void readResults()
+	{
+		HashSet<MutexReader.Group> results = new HashSet<>();
+		MutexReader.readMutexResultsRecursive(DIR, results);
+
+		results.stream().sorted(Comparator.comparingDouble(o -> o.score)).filter(g -> g.score < 1).forEach(g -> System.out.println(g.toString().replace(DIR, "")));
+	}
 }

@@ -6,10 +6,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -44,9 +41,71 @@ public class MergeSIFFiles
 		writer.close();
 	}
 
+	private static void cleanDuplicateSites(String formatFile, String outFile) throws IOException
+	{
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(outFile));
+		Set<String> select = mergeAndReportTwoFormatFiles(Files.lines(Paths.get(formatFile)).collect(Collectors.toSet()));
+		Files.lines(Paths.get(formatFile)).distinct().forEach(l ->
+		{
+			if (!l.contains("rppasite") || select.contains(l)) FileUtil.writeln(l, writer);
+		});
+		writer.close();
+	}
+
+	private static Set<String> mergeAndReportTwoFormatFiles(Set<String> lines)
+	{
+		Map<String, Set<String>> idToLines = new HashMap<>();
+
+		lines.stream().filter(l -> l.contains("rppasite")).distinct().forEach(l ->
+		{
+			String[] t = l.split("\t");
+			String id = t[1] + " " + t[3].substring(0, t[3].indexOf("|"));
+
+			if (!idToLines.containsKey(id)) idToLines.put(id, new HashSet<>());
+			idToLines.get(id).add(l);
+		});
+
+		Set<String> select = new HashSet<>();
+		idToLines.keySet().stream().filter(id -> idToLines.get(id).size() == 1).forEach(id ->
+			select.add(idToLines.get(id).iterator().next()));
+		idToLines.keySet().stream().filter(id -> idToLines.get(id).size() > 1).forEach(id ->
+			select.add(selectHighestAbsoluteValueLine(idToLines.get(id))));
+
+		idToLines.keySet().stream().filter(id -> idToLines.get(id).size() > 1).sorted().forEach(id ->
+		{
+			System.out.println("\nid = " + id);
+			for (String line : idToLines.get(id))
+			{
+				if (select.contains(line)) System.out.print("* ");
+				System.out.println(line);
+			}
+		});
+
+		return select;
+	}
+
+	private static String selectHighestAbsoluteValueLine(Set<String> lines)
+	{
+		double maxVal = 0;
+		String select = null;
+
+		for (String line : lines)
+		{
+			double value = Double.valueOf(line.substring(line.lastIndexOf("|") + 1));
+			if (Math.abs(value) > maxVal)
+			{
+				select = line;
+				maxVal = Math.abs(value);
+			}
+		}
+		return select;
+	}
+
 	public static void main(String[] args) throws IOException
 	{
-		String dir = "/home/babur/Documents/Analyses/JQ1/COV318-GSK3/";
-		merge(dir + "merged", dir + "causative", dir +  "conflicting");
+		cleanDuplicateSites("/Users/ozgun/Downloads/sum-relax1aa.format", "/Users/ozgun/Downloads/sum-relax1aa-clean.format");
+
+//		String dir = "/home/babur/Documents/Analyses/JQ1/COV318-GSK3/";
+//		merge(dir + "merged", dir + "causative", dir + "conflicting");
 	}
 }
