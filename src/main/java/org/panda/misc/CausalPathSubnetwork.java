@@ -153,23 +153,56 @@ public class CausalPathSubnetwork
 		writeSubsetFormat(dir + "/causative.format", dir + "/causative-sig-neigh.format", goi, ids);
 	}
 
+	public static void writeGOINeighForCompBasedRecursively(String dir, Set<String> goi, StreamDirection d) throws IOException
+	{
+		String sifFile = dir + "/causative.sif";
+		if (Files.exists(Paths.get(sifFile)))
+		{
+			writeGOINeighForCompBased(dir, goi, d);
+		}
+		else
+		{
+			for (File subdir : new File(dir).listFiles())
+			{
+				if (subdir.isDirectory())
+				{
+					writeGOINeighForCompBasedRecursively(subdir.getPath(), goi, d);
+				}
+			}
+		}
+
+	}
+
 	public static void writeGOINeighForCompBased(String dir, Set<String> goi, StreamDirection d) throws IOException
+	{
+		writeGOINeighForCompBased(dir, goi, d, "causative-goi-neigh");
+	}
+
+	public static void writeGOINeighForCompBased(String dir, Set<String> goi, StreamDirection d, String outSIFNoExt) throws IOException
 	{
 		if (!Files.exists(Paths.get(dir + "/results.txt"))) return;
 
 		System.out.println("dir = " + dir);
-		SIFFileUtil.writeNeighborhood(dir + "/causative.sif", goi, dir + "/causative-goi-neigh.sif", d);
+		SIFFileUtil.writeNeighborhood(dir + "/causative.sif", goi, dir + "/" + outSIFNoExt + ".sif", d);
 		Set<String> ids = getIDsAtTheNeighborhood(dir + "/results.txt", goi, d);
 		System.out.println("ids.size() = " + ids.size());
-		writeSubsetFormat(dir + "/causative.format", dir + "/causative-goi-neigh.format", goi, ids);
+		writeSubsetFormat(dir + "/causative.format", dir + "/" + outSIFNoExt + ".format", goi, ids);
 	}
 
 	// Correlation-based results
 
+	/**
+	 * @deprecated Provide the FDR threshold and use the next method.
+	 */
 	public static void writeSignifNeighForCorrBased(String dir, StreamDirection d) throws IOException
 	{
+		writeSignifNeighForCorrBased(dir, d, 0.1);
+	}
+
+	public static void writeSignifNeighForCorrBased(String dir, StreamDirection d, double fdrThr) throws IOException
+	{
 		System.out.println("dir = " + dir);
-		Set<String> goi = getDownstreamEnrichedForCorrelation(dir + "/significance-pvals.txt", 0.1);
+		Set<String> goi = getDownstreamEnrichedForCorrelation(dir + "/significance-pvals.txt", fdrThr);
 		System.out.println("signif size = " + goi.size());
 		SIFFileUtil.writeNeighborhood(dir + "/causative.sif", goi, dir + "/causative-sig-neigh.sif", d);
 		Set<String> ids = getIDsAtTheNeighborhood(dir + "/results.txt", goi, d);
@@ -201,7 +234,7 @@ public class CausalPathSubnetwork
 			else if (goi != null && goi.contains(t[1])) FileUtil.writeln(l, writer);
 		});
 
-		if (goi != null) goi.forEach(g -> FileUtil.writeln("node\t" + g + "\tborderwidth\t2", writer));
+//		if (goi != null) goi.forEach(g -> FileUtil.writeln("node\t" + g + "\tborderwidth\t2", writer));
 
 		writer.close();
 	}

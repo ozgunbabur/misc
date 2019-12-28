@@ -1,12 +1,16 @@
 package org.panda.misc.analyses;
 
+import org.biopax.paxtools.pattern.miner.SIFEnum;
 import org.panda.resource.HGNC;
 import org.panda.resource.UniProtSequence;
+import org.panda.resource.signednetwork.SignedType;
 import org.panda.resource.siteeffect.SiteEffectCollective;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.ValToColor;
+import org.panda.utility.graph.DirectedGraph;
+import org.panda.utility.graph.PhosphoGraph;
 import org.panda.utility.statistics.Histogram;
 
 import java.awt.*;
@@ -45,7 +49,12 @@ public class Aslan
 
 //		printOtherPenaltied();
 //		listDarkPhosphoproteome();
-		printStatisticsFromDataFile();
+
+//		printStatisticsFromDataFile();
+//		printStatisticsFromResultsFiles();
+
+//		readValidationResults();
+		compareResultsToValidations();
 	}
 
 	static void convertPhosphoproteomics() throws IOException
@@ -703,45 +712,56 @@ public class Aslan
 
 	private static void printStatisticsFromDataFile() throws IOException
 	{
-		String dir = "/Users/ozgun/Documents/Analyses/Aslan-platelet/";
+		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
 		int[] cnt = new int[4];
 		int rows = 0;
 		int upreg = 1;
 		int downreg = 2;
 		int overlapInd = 3;
-		Set<String> ids1 = new HashSet<>();
-		Set<String> ids2 = new HashSet<>();
-		Set<String> prots1 = new HashSet<>();
-		Set<String> prots2 = new HashSet<>();
+		Set<String> sitesC1 = new HashSet<>();
+		Set<String> sitesC2 = new HashSet<>();
+		Set<String> upregSitesC1 = new HashSet<>();
+		Set<String> upregSitesC2 = new HashSet<>();
+		Set<String> downregSitesC1 = new HashSet<>();
+		Set<String> downregSitesC2 = new HashSet<>();
+		Set<String> protsC1 = new HashSet<>();
+		Set<String> protsC2 = new HashSet<>();
 
-		Set<String> woOld = readSIF(dir + "without-feedback-relax1aa/causative.sif");
-		Set<String> woNew = readSIF(dir + "without-feedback-relax1aa-copy/causative.sif");
-		CollectionUtil.printVennCounts(woOld, woNew);
-		woOld.removeAll(woNew);
-		woOld.forEach(System.out::println);
-
-		System.out.println();
+//		System.out.println("without-feedback SIF:");
+//		Set<String> woOld = readSIF(dir + "without-feedback-relax1aa/causative.sif");
+//		Set<String> woNew = readSIF(dir + "without-feedback-relax1aa-copy/causative.sif");
+//		CollectionUtil.printVennCounts(woOld, woNew);
+//		woOld.removeAll(woNew);
+//		woOld.forEach(System.out::println);
+//		System.out.println();
 
 		Files.lines(Paths.get(dir + "without-feedback-relax1aa/data-fdr0.1.txt")).skip(1)
 			.map(l -> l.split("\t")).forEach(t ->
 		{
 			cnt[rows]++;
+			int sign = 0;
 			if (!t[4].equals("0.0"))
 			{
-				if (t[4].startsWith("-")) cnt[downreg]++;
-				else cnt[upreg]++;
+				if (t[4].startsWith("-"))
+				{
+					cnt[downreg]++;
+					sign = -1;
+				}
+				else
+				{
+					cnt[upreg]++;
+					sign = 1;
+				}
 			}
-			String[] tt = t[0].split("_");
-			for (int i = 1; i < tt.length; i++)
-			{
-				ids1.add(tt[0] + "_" + tt[i]);
-			}
-			for (String sym : t[1].split(" "))
-			{
-				prots1.add(sym);
-			}
+
+			sitesC1.addAll(distributeSites(t[0]));
+			if (sign == 1) upregSitesC1.addAll(distributeSites(t[0]));
+			else if (sign == -1) downregSitesC1.addAll(distributeSites(t[0]));
+
+			protsC1.addAll(Arrays.asList(t[1].split(" ")));
 		});
 
+		System.out.println("without-feedback row stats:");
 		System.out.println("cnt[rows] = " + cnt[rows]);
 		System.out.println("cnt[upreg] = " + cnt[upreg]);
 		System.out.println("cnt[downreg] = " + cnt[downreg]);
@@ -751,60 +771,242 @@ public class Aslan
 			cnt[i] = 0;
 		}
 
-		System.out.println();
-		Set<String> wOld = readSIF(dir + "with-feedback-relax1aa/causative.sif");
-		Set<String> wNew = readSIF(dir + "with-feedback-relax1aa-copy/causative.sif");
-		CollectionUtil.printVennCounts(wOld, wNew);
-		wOld.removeAll(wNew);
-		wOld.forEach(System.out::println);
+//		System.out.println("\nwith-feedback SIF:");
+//		Set<String> wOld = readSIF(dir + "with-feedback-relax1aa/causative.sif");
+//		Set<String> wNew = readSIF(dir + "with-feedback-relax1aa-copy/causative.sif");
+//		CollectionUtil.printVennCounts(wOld, wNew);
+//		wOld.removeAll(wNew);
+//		wOld.forEach(System.out::println);
 
 
 		Files.lines(Paths.get(dir + "with-feedback-relax1aa/data-fdr0.1.txt")).skip(1)
 			.map(l -> l.split("\t")).forEach(t ->
 		{
 			cnt[rows]++;
+			int sign = 0;
 			if (!t[4].equals("0.0"))
 			{
-				if (t[4].startsWith("-")) cnt[downreg]++;
-				else cnt[upreg]++;
-			}
-			String[] tt = t[0].split("_");
-			boolean counted = false;
-			for (int i = 1; i < tt.length; i++)
-			{
-				String key = tt[0] + "_" + tt[i];
-				ids2.add(key);
-
-				if (!counted && ids1.contains(key))
+				if (t[4].startsWith("-"))
 				{
-					cnt[overlapInd]++;
-					counted = true;
+					cnt[downreg]++;
+					sign = -1;
+				}
+				else
+				{
+					cnt[upreg]++;
+					sign = 1;
 				}
 			}
-			for (String sym : t[1].split(" "))
-			{
-				prots2.add(sym);
-			}
+
+			if (distributeSites(t[0]).stream().anyMatch(sitesC1::contains)) cnt[overlapInd]++;
+			sitesC2.addAll(distributeSites(t[0]));
+			if (sign == 1) upregSitesC2.addAll(distributeSites(t[0]));
+			else if (sign == -1) downregSitesC2.addAll(distributeSites(t[0]));
+			protsC2.addAll(Arrays.asList(t[1].split(" ")));
 		});
 
+		System.out.println("with-feedback row stats:");
 		System.out.println("\ncnt[rows] = " + cnt[rows]);
 		System.out.println("cnt[upreg] = " + cnt[upreg]);
 		System.out.println("cnt[downreg] = " + cnt[downreg]);
 
-		System.out.println("ids1.size() = " + ids1.size());
-		System.out.println("ids2.size() = " + ids2.size());
+		System.out.println("\nwithout-feedback sites = " + sitesC1.size());
+		System.out.println("with-feedback sites = " + sitesC2.size());
 		System.out.println();
-		CollectionUtil.printVennCounts(ids1, ids2);
+		CollectionUtil.printVennCounts(sitesC1, sitesC2);
 
-		System.out.println("\ncnt[overlapInd] = " + cnt[overlapInd]);
+		System.out.println("\nwithout-feedback upreg sites = " + upregSitesC1.size());
+		System.out.println("with-feedback upreg sites = " + upregSitesC2.size());
+		System.out.println();
+		CollectionUtil.printVennCounts(upregSitesC1, upregSitesC2);
 
-		System.out.println("\nprots1 = " + prots1.size());
-		System.out.println("prots2 = " + prots2.size());
-		CollectionUtil.printVennCounts(prots1, prots2);
+		System.out.println("\nwithout-feedback downreg sites = " + downregSitesC1.size());
+		System.out.println("with-feedback downreg sites = " + downregSitesC2.size());
+		System.out.println();
+		CollectionUtil.printVennCounts(downregSitesC1, downregSitesC2);
+
+		System.out.println("\noverlapping rows = " + cnt[overlapInd]);
+
+		System.out.println("\nwithout-feedback prots = " + protsC1.size());
+		System.out.println("with-feedback prots = " + protsC2.size());
+		CollectionUtil.printVennCounts(protsC1, protsC2);
+	}
+
+
+	private static void printStatisticsFromResultsFiles() throws IOException
+	{
+		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
+
+		Set<String> relsC1 = readSIF(dir + "without-feedback-relax1aa/causative.sif");
+		Set<String> relsC2 = readSIF(dir + "with-feedback-relax1aa/causative.sif");
+		System.out.println("relsC1.size() = " + relsC1.size());
+		System.out.println("relsC2.size() = " + relsC2.size());
+		CollectionUtil.printVennCounts(relsC1, relsC2);
+
+		String file = dir + "without-feedback-relax1aa-copy/results.txt";
+		Set<String> protsC1 = new HashSet<>();
+		Set<String> sitesC1 = new HashSet<>();
+		readResultFile(file, protsC1, sitesC1);
+
+		file = dir + "with-feedback-relax1aa-copy/results.txt";
+		Set<String> protsC2 = new HashSet<>();
+		Set<String> sitesC2 = new HashSet<>();
+		readResultFile(file, protsC2, sitesC2);
+
+		System.out.println("\nprotsC1.size() = " + protsC1.size());
+		System.out.println("protsC2.size() = " + protsC2.size());
+		CollectionUtil.printVennCounts(protsC1, protsC2);
+		
+		System.out.println("\nsitesC1.size() = " + sitesC1.size());
+		System.out.println("sitesC2.size() = " + sitesC2.size());
+		CollectionUtil.printVennCounts(sitesC1, sitesC2);
+		
+	}
+
+	private static void readResultFile(String file, Set<String> prots, Set<String> sites) throws IOException
+	{
+		Files.lines(Paths.get(file)).skip(1).map(l -> l.split("\t")).forEach(t ->
+		{
+			prots.add(t[0]);
+			prots.add(t[2]);
+
+//			Set<String> relSites = relaxSites(t[3]);
+
+			String sID = selectRelatedID(t[4], t[0]);
+			String tID = selectRelatedID(t[7], t[2]);
+			
+			sites.addAll(distributeSites(sID));
+			sites.addAll(distributeSites(tID));
+		});
 	}
 
 	private static Set<String> readSIF(String file) throws IOException
 	{
 		return Files.lines(Paths.get(file)).map(l -> l.split("\t")).filter(t -> t.length > 2).map(t -> ArrayUtil.getString("\t", t[0], t[1], t[2])).collect(Collectors.toSet());
+	}
+
+	private static Set<String> distributeSites(String id)
+	{
+		Set<String> set = new HashSet<>();
+		String[] t = id.split("_");
+		for (int i = 1; i < t.length; i++)
+		{
+			set.add(t[0] + "_" + t[i]);
+		}
+		return set;
+	}
+
+	private static Set<String> relaxSites(String relStr)
+	{
+		Set<String> relaxed = new HashSet<>();
+		for (String site : relStr.split(";"))
+		{
+			String aa = site.substring(0, 1);
+			int pos = Integer.parseInt(site.substring(1));
+			relaxed.add(site);
+			relaxed.add(aa + (pos - 1));
+			relaxed.add(aa + (pos + 1));
+		}
+		return relaxed;
+	}
+	
+	private static String selectRelatedID(String id, String sym)
+	{
+		if (id.endsWith("-by-network-sig") || id.endsWith("-active")) return id;
+
+		for (String s : id.split("-"))
+		{
+			if (s.startsWith(sym + "_")) return s;
+		}
+		System.out.println("id = " + id);
+		System.out.println("sym = " + sym);
+		throw new RuntimeException("Should not reach here!");
+	}
+
+	private static void readValidationResults() throws IOException
+	{
+		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
+		String valDir = dir + "validation/";
+		String blotFile = valDir + "blots.csv";
+		String[] header = Files.lines(Paths.get(blotFile)).findFirst().get().split("\t");
+		double fdrThr = 0.1;
+
+		Map<String, Set<String>> drugTargetMap = Files.lines(Paths.get(blotFile)).skip(20).limit(8)
+			.map(l -> l.split("\t"))
+			.collect(Collectors.toMap(t -> t[0], t -> new HashSet<>(Arrays.asList(t[1].split(", ")))));
+
+		Map<String, Map<String, Boolean>> dirMap = new HashMap<>();
+		Files.lines(Paths.get(blotFile)).skip(31).map(l -> l.split("\t")).forEach(t ->
+		{
+			Map<String, Boolean> map = new HashMap<>();
+			double ref = Double.valueOf(t[3]);
+			for (int i = 4; i < t.length; i++)
+			{
+				map.put(header[i], Double.valueOf(t[i]) < ref);
+			}
+			dirMap.put(t[0], map);
+		});
+
+
+		PhosphoGraph graph = new PhosphoGraph("Validation", SignedType.PHOSPHORYLATES.getTag());
+
+		Files.lines(Paths.get(blotFile)).skip(1).limit(11).map(l -> l.split("\t")).forEach(t ->
+		{
+			String gene = t[0].substring(0, t[0].indexOf(" "));
+			Set<String> sites = new HashSet<>(Arrays.asList(t[0].substring(t[0].indexOf(" ") + 1).split(", ")));
+
+			for (int i = 4; i < t.length; i++)
+			{
+				if (t[i].startsWith("<")) t[i] = t[i].substring(1);
+				double val = Double.valueOf(t[i]);
+				if (val <= fdrThr)
+				{
+					if (!dirMap.get(t[0]).get(header[i]))
+					{
+						System.out.println("trg = " + t[0] + ", drug = " + header[i]);
+					}
+					for (String eff : drugTargetMap.get(header[i]))
+					{
+						graph.putRelation(eff, gene, "", CollectionUtil.merge(sites, ";"));
+					}
+				}
+			}
+		});
+
+		graph.write(valDir + "validations.sif");
+	}
+
+	private static void compareResultsToValidations() throws IOException
+	{
+		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
+		String valDir = dir + "validation/";
+		String resDir = dir + "merged/";
+
+		PhosphoGraph valGraph = new PhosphoGraph("Validation", SignedType.PHOSPHORYLATES.getTag());
+		valGraph.load(valDir + "validations.sif", Collections.singleton(valGraph.getEdgeType()));
+		PhosphoGraph resGraph = new PhosphoGraph("Results", SignedType.PHOSPHORYLATES.getTag());
+		resGraph.load(resDir + "sum-relax1aa.sif", Collections.singleton(resGraph.getEdgeType()));
+
+		Set<String> valSources = valGraph.getOneSideSymbols(true);
+		Set<String> valTargets = valGraph.getOneSideSymbols(false);
+
+		for (String source : valSources)
+		{
+			for (String target : resGraph.getDownstream(source))
+			{
+				if (valTargets.contains(target))
+				{
+					System.out.print(source + " ----> " + target + "\t");
+					if (valGraph.getDownstream(source).contains(target))
+					{
+						System.out.println("+");
+					}
+					else
+					{
+						System.out.println();
+					}
+				}
+			}
+		}
 	}
 }
