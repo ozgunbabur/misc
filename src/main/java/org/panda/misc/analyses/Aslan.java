@@ -1,20 +1,17 @@
 package org.panda.misc.analyses;
 
-import org.biopax.paxtools.pattern.miner.SIFEnum;
 import org.panda.resource.HGNC;
 import org.panda.resource.UniProtSequence;
 import org.panda.resource.signednetwork.SignedType;
 import org.panda.resource.siteeffect.SiteEffectCollective;
-import org.panda.utility.ArrayUtil;
-import org.panda.utility.CollectionUtil;
-import org.panda.utility.FileUtil;
-import org.panda.utility.ValToColor;
-import org.panda.utility.graph.DirectedGraph;
+import org.panda.utility.*;
 import org.panda.utility.graph.PhosphoGraph;
 import org.panda.utility.statistics.Histogram;
+import org.panda.utility.statistics.Overlap;
 
 import java.awt.*;
 import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,12 +24,12 @@ import java.util.stream.Collectors;
  */
 public class Aslan
 {
-	public static final String IN_BASE = "/home/ozgun/Data/Aslan/platelet-phosphoproteomics/";
+	public static final String BASE = "/Users/ozgun/Documents/Analyses/platelet/";
+	public static final String IN_BASE = BASE + "data/";
+	public static final String OUT_BASE = BASE;
 
-	public static final String OUT_BASE = "/home/ozgun/Analyses/Aslan-platelet/";
-
-	public static final String[] INS_WITHOUT_FEEDBACK = new String[]{IN_BASE + "AslanTMT2017-GPVI-TiO2.csv", IN_BASE + "AslanTMT2017-GPVI-pTyr.csv"};
-	public static final String[] INS_WITH_FEEDBACK = new String[]{IN_BASE + "AslanTMT2018-GPVIwithFeedback-TiO2.csv", IN_BASE + "AslanTMT2018-GPVIwithFeedback-pTyr.csv"};
+	public static final String[] INS_COND_1 = new String[]{IN_BASE + "cond1Y.csv", IN_BASE + "cond1S.csv"};
+	public static final String[] INS_COND_2 = new String[]{IN_BASE + "cond2Y.csv", IN_BASE + "cond2S.csv"};
 
 	public static final String OUT_FILE_NAME = "/data-fdr0.1.txt";
 
@@ -47,26 +44,27 @@ public class Aslan
 //		convertIndividualOlds();
 //		convertIndividualYoungs();
 
-//		printOtherPenaltied();
+//		addOtherPenaltied();
 //		listDarkPhosphoproteome();
 
 //		printStatisticsFromDataFile();
 //		printStatisticsFromResultsFiles();
 
-//		readValidationResults();
-		compareResultsToValidations();
+		readValidationResults();
+//		compareFigureSIFToNewMergedOne();
+
 	}
 
 	static void convertPhosphoproteomics() throws IOException
 	{
 		Map<String, Holder> map = new HashMap<>();
-		for (String inF : INS_WITHOUT_FEEDBACK)
+		for (String inF : INS_COND_1)
 		{
 			System.out.println("inF = " + inF);
-			readInputWithoutFeedback(inF, map, FDR_THR);
+			readPhospho(inF, map, FDR_THR);
 		}
 
-		BufferedWriter writer1 = Files.newBufferedWriter(Paths.get(OUT_BASE + "without-feedback" + OUT_FILE_NAME));
+		BufferedWriter writer1 = Files.newBufferedWriter(Paths.get(OUT_BASE + "cond1" + OUT_FILE_NAME));
 		writer1.write("ID\tSymbols\tSites\tEffect\tFold change");
 
 		map.values().stream().distinct().forEach(h -> FileUtil.lnwrite(h.toString(), writer1));
@@ -74,13 +72,13 @@ public class Aslan
 		writer1.close();
 
 		map = new HashMap<>();
-		for (String inF : INS_WITH_FEEDBACK)
+		for (String inF : INS_COND_2)
 		{
 			System.out.println("inF = " + inF);
-			readInputWithFeedback(inF, map, FDR_THR);
+			readPhospho(inF, map, FDR_THR);
 		}
 
-		BufferedWriter writer2 = Files.newBufferedWriter(Paths.get(OUT_BASE + "with-feedback" + OUT_FILE_NAME));
+		BufferedWriter writer2 = Files.newBufferedWriter(Paths.get(OUT_BASE + "cond2" + OUT_FILE_NAME));
 		writer2.write("ID\tSymbols\tSites\tEffect\tFold change");
 
 		map.values().stream().distinct().forEach(h -> FileUtil.lnwrite(h.toString(), writer2));
@@ -118,6 +116,47 @@ public class Aslan
 				FileUtil.write(h.getFormatString(vtc), writer2));
 			writer2.close();
 		}
+	}
+
+	static void readPhospho(String file, Map<String, Holder> map, double fdrThr) throws IOException
+	{
+		String[] header = Files.lines(Paths.get(file)).skip(4).findFirst().get().split("\t");
+
+		int fdrInd = ArrayUtil.lastIndexOf(header, "FDR");
+		int logfcInd = ArrayUtil.lastIndexOf(header, "logFC");
+		int geneInd = ArrayUtil.indexOf(header, "Protein Descriptions");
+		int siteInd = ArrayUtil.indexOf(header, "Site List");
+
+		Files.lines(Paths.get(file)).skip(5).map(l -> l.split("\t")).forEach(t ->
+		{
+			String sym = t[geneInd];
+			int ind = sym.indexOf("GN=") + 3;
+			if (ind < 3) return;
+			sym = sym.substring(ind, sym.indexOf(" ", ind));
+
+			List<String> sites = Arrays.asList(t[siteInd].split("; "));
+
+			double fdr = Double.parseDouble(t[fdrInd]);
+
+			double fc = Double.parseDouble(t[logfcInd]);
+
+			if (fdr > fdrThr) fc = 0;
+
+			Holder h = new Holder(Collections.singletonList(sym), Collections.singletonList(sites), fc);
+
+			// check for conflicting data
+			if (map.containsKey(h.id) && map.get(h.id).fc * h.fc < 0)
+			{
+				System.err.println("Conflicting data for " + h.id);
+				if (map.get(h.id).fc < 0) map.remove(h.id);
+				else return;
+			}
+
+			if (!map.containsKey(h.id) || Math.abs(map.get(h.id).fc) < Math.abs(h.fc))
+			{
+				map.put(h.id, h);
+			}
+		});
 	}
 
 	static void readInputWithoutFeedback(String file, Map<String, Holder> map, double fdrThr) throws IOException
@@ -597,13 +636,13 @@ public class Aslan
 	/**
 	 * To get a list of proteins significantly changing but not even mapping to causal priors.
 	 */
-	public static void printOtherPenaltied() throws IOException
+	public static void addOtherPenaltied() throws IOException
 	{
-		String dir = "/home/ozgun/Analyses/Aslan-platelet/without-feedback/";
+		String dir = "/Users/ozgun/Documents/Analyses/platelet/cond1-relax1aa/";
 		String resultFile = dir + "causative.sif";
 		String dataFile = dir + "data-fdr0.1.txt";
 
-		ValToColor vtc = new ValToColor(new double[]{-10, 0, 10},
+		ValToColor vtc = new ValToColor(new double[]{-3, 0, 3},
 			new Color[]{new Color(40, 80, 255), Color.WHITE, new Color(255, 80, 40)});
 
 		Set<String> existing = new HashSet<>();
@@ -618,6 +657,8 @@ public class Aslan
 
 		Set<String> genes = new HashSet<>();
 
+		BufferedWriter writer1 = new BufferedWriter(new FileWriter(dir + "causative.format", true));
+
 		Files.lines(Paths.get(dataFile)).skip(1).map(l -> l.split("\t"))
 			.filter(t -> !t[4].equals("0.0") && CollectionUtil.intersectionEmpty(existing,
 				new HashSet<>(Arrays.asList(t[1].split(" "))))).forEach(t ->
@@ -629,8 +670,8 @@ public class Aslan
 			{
 				String gene = g[i];
 				genes.add(gene);
-				String sites = s[i];
 
+				String sites = s[i];
 				Integer effect = getSiteEffect(sec, gene, sites);
 
 				String id = t[0];
@@ -638,16 +679,18 @@ public class Aslan
 
 				String borderC = effect == null || effect == 0 ? "50 50 50" : effect == 1 ? "0 180 20" : "180 0 20";
 
-				System.out.println("node\t"+ gene + "\trppasite\t" + id + "|p|" + vtc.getColorInString(v) + "|" + borderC + "|" + v);
+				FileUtil.writeln("node\t"+ gene + "\trppasite\t" + id + "|p|" + vtc.getColorInString(v) + "|" + borderC + "|" + v, writer1);
 			}
 
 		});
+		writer1.close();
 
-		System.out.println("\n\n\n");
+		BufferedWriter writer2 = new BufferedWriter(new FileWriter(resultFile, true));
 		for (String gene : genes)
 		{
-			System.out.println(gene);
+			writer2.write(gene + "\n");
 		}
+		writer2.close();
 	}
 
 	/**
@@ -655,7 +698,7 @@ public class Aslan
 	 */
 	public static void listDarkPhosphoproteome() throws IOException
 	{
-		String dir = "/home/ozgun/Analyses/Aslan-platelet/with-feedback/";
+		String dir = "/Users/ozgun/Documents/Analyses/platelet/cond2/";
 		String resultFile = dir + "causative.sif";
 		String dataFile = dir + "data-fdr0.1.txt";
 
@@ -712,7 +755,7 @@ public class Aslan
 
 	private static void printStatisticsFromDataFile() throws IOException
 	{
-		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
+		String dir = "/Users/ozgun/Documents/Analyses/platelet/";
 		int[] cnt = new int[4];
 		int rows = 0;
 		int upreg = 1;
@@ -735,7 +778,7 @@ public class Aslan
 //		woOld.forEach(System.out::println);
 //		System.out.println();
 
-		Files.lines(Paths.get(dir + "without-feedback-relax1aa/data-fdr0.1.txt")).skip(1)
+		Files.lines(Paths.get(dir + "cond1-relax1aa/data-fdr0.1.txt")).skip(1)
 			.map(l -> l.split("\t")).forEach(t ->
 		{
 			cnt[rows]++;
@@ -761,7 +804,7 @@ public class Aslan
 			protsC1.addAll(Arrays.asList(t[1].split(" ")));
 		});
 
-		System.out.println("without-feedback row stats:");
+		System.out.println("cond 1 row stats:");
 		System.out.println("cnt[rows] = " + cnt[rows]);
 		System.out.println("cnt[upreg] = " + cnt[upreg]);
 		System.out.println("cnt[downreg] = " + cnt[downreg]);
@@ -779,7 +822,7 @@ public class Aslan
 //		wOld.forEach(System.out::println);
 
 
-		Files.lines(Paths.get(dir + "with-feedback-relax1aa/data-fdr0.1.txt")).skip(1)
+		Files.lines(Paths.get(dir + "cond2-relax1aa/data-fdr0.1.txt")).skip(1)
 			.map(l -> l.split("\t")).forEach(t ->
 		{
 			cnt[rows]++;
@@ -805,50 +848,50 @@ public class Aslan
 			protsC2.addAll(Arrays.asList(t[1].split(" ")));
 		});
 
-		System.out.println("with-feedback row stats:");
+		System.out.println("cond 2 row stats:");
 		System.out.println("\ncnt[rows] = " + cnt[rows]);
 		System.out.println("cnt[upreg] = " + cnt[upreg]);
 		System.out.println("cnt[downreg] = " + cnt[downreg]);
 
-		System.out.println("\nwithout-feedback sites = " + sitesC1.size());
-		System.out.println("with-feedback sites = " + sitesC2.size());
+		System.out.println("\ncond1 sites = " + sitesC1.size());
+		System.out.println("cond2 sites = " + sitesC2.size());
 		System.out.println();
 		CollectionUtil.printVennCounts(sitesC1, sitesC2);
 
-		System.out.println("\nwithout-feedback upreg sites = " + upregSitesC1.size());
-		System.out.println("with-feedback upreg sites = " + upregSitesC2.size());
+		System.out.println("\ncond1 upreg sites = " + upregSitesC1.size());
+		System.out.println("cond2 upreg sites = " + upregSitesC2.size());
 		System.out.println();
 		CollectionUtil.printVennCounts(upregSitesC1, upregSitesC2);
 
-		System.out.println("\nwithout-feedback downreg sites = " + downregSitesC1.size());
-		System.out.println("with-feedback downreg sites = " + downregSitesC2.size());
+		System.out.println("\ncond1 downreg sites = " + downregSitesC1.size());
+		System.out.println("cond2 downreg sites = " + downregSitesC2.size());
 		System.out.println();
 		CollectionUtil.printVennCounts(downregSitesC1, downregSitesC2);
 
 		System.out.println("\noverlapping rows = " + cnt[overlapInd]);
 
-		System.out.println("\nwithout-feedback prots = " + protsC1.size());
-		System.out.println("with-feedback prots = " + protsC2.size());
+		System.out.println("\ncond1 prots = " + protsC1.size());
+		System.out.println("cond2 prots = " + protsC2.size());
 		CollectionUtil.printVennCounts(protsC1, protsC2);
 	}
 
 
 	private static void printStatisticsFromResultsFiles() throws IOException
 	{
-		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
+		String dir = "/Users/ozgun/Documents/Analyses/platelet/";
 
-		Set<String> relsC1 = readSIF(dir + "without-feedback-relax1aa/causative.sif");
-		Set<String> relsC2 = readSIF(dir + "with-feedback-relax1aa/causative.sif");
+		Set<String> relsC1 = readSIF(dir + "cond1-relax1aa/causative.sif");
+		Set<String> relsC2 = readSIF(dir + "cond2-relax1aa/causative.sif");
 		System.out.println("relsC1.size() = " + relsC1.size());
 		System.out.println("relsC2.size() = " + relsC2.size());
 		CollectionUtil.printVennCounts(relsC1, relsC2);
 
-		String file = dir + "without-feedback-relax1aa-copy/results.txt";
+		String file = dir + "cond1-relax1aa/results.txt";
 		Set<String> protsC1 = new HashSet<>();
 		Set<String> sitesC1 = new HashSet<>();
 		readResultFile(file, protsC1, sitesC1);
 
-		file = dir + "with-feedback-relax1aa-copy/results.txt";
+		file = dir + "cond2-relax1aa/results.txt";
 		Set<String> protsC2 = new HashSet<>();
 		Set<String> sitesC2 = new HashSet<>();
 		readResultFile(file, protsC2, sitesC2);
@@ -925,16 +968,19 @@ public class Aslan
 
 	private static void readValidationResults() throws IOException
 	{
-		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
+//		String dir = "/home/ozgun/Analyses/Aslan-platelet/"; // OR
+		String dir = "/Users/ozgun/Documents/Analyses/platelet/"; // MA
 		String valDir = dir + "validation/";
 		String blotFile = valDir + "blots.csv";
 		String[] header = Files.lines(Paths.get(blotFile)).findFirst().get().split("\t");
 		double fdrThr = 0.1;
 
+		// read drug targets
 		Map<String, Set<String>> drugTargetMap = Files.lines(Paths.get(blotFile)).skip(20).limit(8)
 			.map(l -> l.split("\t"))
 			.collect(Collectors.toMap(t -> t[0], t -> new HashSet<>(Arrays.asList(t[1].split(", ")))));
 
+		// read change directions
 		Map<String, Map<String, Boolean>> dirMap = new HashMap<>();
 		Files.lines(Paths.get(blotFile)).skip(31).map(l -> l.split("\t")).forEach(t ->
 		{
@@ -947,66 +993,130 @@ public class Aslan
 			dirMap.put(t[0], map);
 		});
 
+		String resDir = dir + "merged/";
+
+		// load result phosphorylation graph
+		PhosphoGraph resGraph = new PhosphoGraph("Results", SignedType.PHOSPHORYLATES.getTag());
+		resGraph.load(resDir + "merged-relax1aa.sif", Collections.singleton(resGraph.getEdgeType()));
 
 		PhosphoGraph graph = new PhosphoGraph("Validation", SignedType.PHOSPHORYLATES.getTag());
 
+		String colorValidAndFound = "0 150 0";
+		String colorValidAndIndirect = "80 80 200";
+		String colorNotValidButFound = "150 150 150";
+		String colorValidButNotFound = "150 80 80";
+
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(valDir + "validations.format"));
+		writer.write("node\tall-nodes\tcolor\t255 255 255\n");
+		writer.write("node\tall-nodes\tbordercolor\t0 0 0\n");
+
+		int[] cnt = new int[4];
+		int vfInd = 0;
+		int viInd = 1;
+		int nvbfInd = 2;
+		int vbnfInd = 3;
+		Set<String> allEffs = new HashSet<>();
+		Set<String> allTrgs = new HashSet<>();
+
+		// read significant changes and generate graph
 		Files.lines(Paths.get(blotFile)).skip(1).limit(11).map(l -> l.split("\t")).forEach(t ->
 		{
 			String gene = t[0].substring(0, t[0].indexOf(" "));
+			allTrgs.add(gene);
 			Set<String> sites = new HashSet<>(Arrays.asList(t[0].substring(t[0].indexOf(" ") + 1).split(", ")));
 
 			for (int i = 4; i < t.length; i++)
 			{
 				if (t[i].startsWith("<")) t[i] = t[i].substring(1);
 				double val = Double.valueOf(t[i]);
-				if (val <= fdrThr)
+				boolean valid = val <= fdrThr && dirMap.get(t[0]).get(header[i]);
+
+				Set<String> sources = drugTargetMap.get(header[i]);
+
+				Set<String> inResSubset = getSourcesThatAreUpstreamOf(gene, resGraph, sources, 1);
+				Set<String> indirectSubset = getSourcesThatAreUpstreamOf(gene, resGraph, sources, 10);
+
+				if (!inResSubset.isEmpty()) sources = inResSubset;
+				else if (!indirectSubset.isEmpty()) sources = indirectSubset;
+
+				for (String eff : sources)
 				{
-					if (!dirMap.get(t[0]).get(header[i]))
-					{
-						System.out.println("trg = " + t[0] + ", drug = " + header[i]);
-					}
-					for (String eff : drugTargetMap.get(header[i]))
+					if (eff.equals("MAPK3") || eff.equals("GSK3B") || eff.equals("PRKCB") || eff.equals("SRC") ||
+						eff.equals("FYN") || eff.equals("LCK")) continue;
+
+					allEffs.add(eff);
+
+					if (valid || inResSubset.contains(eff))
 					{
 						graph.putRelation(eff, gene, "", CollectionUtil.merge(sites, ";"));
+
+						FileUtil.write("edge\t" + eff + " " + SignedType.PHOSPHORYLATES.getTag() + " " + gene + "\tcolor\t", writer);
+
+						if (valid)
+						{
+							if (inResSubset.contains(eff))
+							{
+								FileUtil.writeln(colorValidAndFound, writer);
+								cnt[vfInd]++;
+							}
+							else if (indirectSubset.contains(eff))
+							{
+								FileUtil.writeln(colorValidAndIndirect, writer);
+								cnt[viInd]++;
+							}
+							else
+							{
+								FileUtil.writeln(colorValidButNotFound, writer);
+								cnt[vbnfInd]++;
+							}
+						}
+						else
+						{
+							FileUtil.writeln(colorNotValidButFound, writer);
+							cnt[nvbfInd]++;
+						}
 					}
 				}
 			}
 		});
 
+		writer.close();
+
 		graph.write(valDir + "validations.sif");
+
+		System.out.println("cnt[vfInd] = " + cnt[vfInd]);
+		System.out.println("cnt[viInd] = " + cnt[viInd]);
+		System.out.println("cnt[vbnfInd] = " + cnt[vbnfInd]);
+		System.out.println("cnt[nvbfInd] = " + cnt[nvbfInd]);
+
+		System.out.println("allEffs.size() = " + allEffs.size());
+		System.out.println("allTrgs.size() = " + allTrgs.size());
+
+		int possib = (allEffs.size() * allTrgs.size()) - CollectionUtil.countOverlap(allEffs, allTrgs);
+		System.out.println("possibilities = " + possib);
+
+		int allValid = cnt[vfInd] + cnt[viInd] + cnt[vbnfInd];
+		int allInRes = cnt[vfInd] + cnt[nvbfInd];
+		double pBiasToFound = Overlap.calcCoocPval(possib, cnt[vfInd], allValid, allInRes);
+		System.out.println("pBiasToFound = " + pBiasToFound);
 	}
 
-	private static void compareResultsToValidations() throws IOException
+	private static Set<String> getSourcesThatAreUpstreamOf(String target, PhosphoGraph graph, Set<String> candidates, int limit)
 	{
-		String dir = "/home/ozgun/Analyses/Aslan-platelet/";
-		String valDir = dir + "validation/";
-		String resDir = dir + "merged/";
+		Set<String> results = new HashSet<>();
 
-		PhosphoGraph valGraph = new PhosphoGraph("Validation", SignedType.PHOSPHORYLATES.getTag());
-		valGraph.load(valDir + "validations.sif", Collections.singleton(valGraph.getEdgeType()));
-		PhosphoGraph resGraph = new PhosphoGraph("Results", SignedType.PHOSPHORYLATES.getTag());
-		resGraph.load(resDir + "sum-relax1aa.sif", Collections.singleton(resGraph.getEdgeType()));
-
-		Set<String> valSources = valGraph.getOneSideSymbols(true);
-		Set<String> valTargets = valGraph.getOneSideSymbols(false);
-
-		for (String source : valSources)
+		for (String candidate : candidates)
 		{
-			for (String target : resGraph.getDownstream(source))
-			{
-				if (valTargets.contains(target))
-				{
-					System.out.print(source + " ----> " + target + "\t");
-					if (valGraph.getDownstream(source).contains(target))
-					{
-						System.out.println("+");
-					}
-					else
-					{
-						System.out.println();
-					}
-				}
-			}
+			Set<String> downstream = graph.getDownstream(candidate, limit);
+			if (downstream.contains(target)) results.add(candidate);
 		}
+		return results;
+	}
+
+	private static void compareFigureSIFToNewMergedOne() throws IOException
+	{
+		Set<String> inPaper = SIFFileUtil.getRelationsAsString("/Users/ozgun/Downloads/sum-relax1aa8.sif");
+		Set<String> inResults = SIFFileUtil.getRelationsAsString("/Users/ozgun/Documents/Analyses/platelet/merged/merged-relax1aa.sif");
+		CollectionUtil.printVennSets(10, inPaper, inResults);
 	}
 }

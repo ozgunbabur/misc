@@ -103,9 +103,16 @@ public class MergeSIFFiles
 
 	public static void main(String[] args) throws IOException
 	{
-		cleanDuplicateSites("/Users/ozgun/Downloads/sum-relax1aa.format", "/Users/ozgun/Downloads/sum-relax1aa-clean.format");
+//		cleanDuplicateSites("/Users/ozgun/Downloads/sum-relax1aa.format", "/Users/ozgun/Downloads/sum-relax1aa-clean.format");
 
-//		String dir = "/home/babur/Documents/Analyses/JQ1/COV318-GSK3/";
-//		merge(dir + "merged", dir + "causative", dir + "conflicting");
+		String dir = "/Users/ozgun/Documents/Analyses/platelet/";
+		merge(dir + "merged/merged-relax1aa", dir + "cond1-relax1aa/causative", dir + "cond2-relax1aa/causative");
+		cleanDuplicateSites(dir + "merged/merged-relax1aa.format", dir + "merged/merged-relax1aa-clean.format");
+		Files.delete(Paths.get(dir + "merged/merged-relax1aa.format"));
+		Files.move(Paths.get(dir + "merged/merged-relax1aa-clean.format"), Paths.get(dir + "merged/merged-relax1aa.format"));
+		merge(dir + "merged/merged-strict", dir + "cond1/causative", dir + "cond2/causative");
+		cleanDuplicateSites(dir + "merged/merged-strict.format", dir + "merged/merged-strict-clean.format");
+		Files.delete(Paths.get(dir + "merged/merged-strict.format"));
+		Files.move(Paths.get(dir + "merged/merged-strict-clean.format"), Paths.get(dir + "merged/merged-strict.format"));
 	}
 }

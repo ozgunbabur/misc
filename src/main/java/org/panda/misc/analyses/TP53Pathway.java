@@ -1,7 +1,10 @@
 package org.panda.misc.analyses;
 
+import org.panda.misc.CausalPathSubnetwork;
 import org.panda.misc.MutexReader;
 import org.panda.utility.FileUtil;
+import org.panda.utility.SIFFileUtil;
+import org.panda.utility.StreamDirection;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -21,7 +24,9 @@ public class TP53Pathway
 	public static void main(String[] args) throws IOException
 	{
 //		generateMatrices();
-		readResults();
+//		readResults();
+		printBasalBRCATP53ComparisonCP();
+//		cpResultSubgraph();
 	}
 
 	public static void generateMatrices() throws IOException
@@ -85,4 +90,59 @@ public class TP53Pathway
 
 		results.stream().sorted(Comparator.comparingDouble(o -> o.score)).filter(g -> g.score < 1).forEach(g -> System.out.println(g.toString().replace(DIR, "")));
 	}
+
+	public static void printBasalBRCATP53ComparisonCP() throws IOException
+	{
+		String dir = "/Users/ozgun/Documents/Analyses/TP53-CP/";
+		Set<String> mutatedSamples = Files.lines(Paths.get(dir + "TP53-mutated-TCGA-BRCA-samples.tsv")).skip(1).map(l -> l.split("\t")[1].substring(0, 12)).collect(Collectors.toSet());
+		Set<String> basalSamples = Files.lines(Paths.get(dir + "pancan_samples.txt")).skip(1).map(l -> l.split("\t")).filter(t -> t[2].equals("BRCA") && t[3].equals("Basal")).map(t -> t[0]).collect(Collectors.toSet());
+		String[] header = Files.lines(Paths.get(dir + "CPTAC-TCGA-BRCA-data-77.txt")).findFirst().get().split("\t");
+
+		for (String sample : header)
+		{
+			if (basalSamples.contains(sample))
+			{
+				if (mutatedSamples.contains(sample))
+				{
+					System.out.println("test-value-column = " + sample);
+				}
+				else
+				{
+					System.out.println("control-value-column = " + sample);
+				}
+			}
+		}
+	}
+
+	public static void cpResultSubgraph() throws IOException
+	{
+		String dir = "/Users/ozgun/Documents/Analyses/CPTAC-LUAD/mutations/TP53/";
+		Set<String> goi = new HashSet<>(Arrays.asList(GOI.split("\n")));
+		String subname = "goi-subset";
+		SIFFileUtil.writeNeighborhood(dir + "/causative.sif", goi, dir + "/causative-" + subname + ".sif", StreamDirection.DOWNSTREAM);
+		Set<String> ids = CausalPathSubnetwork.getIDsAtTheNeighborhood(dir + "/results.txt", goi, StreamDirection.DOWNSTREAM);
+		System.out.println("ids.size() = " + ids.size());
+		CausalPathSubnetwork.writeSubsetFormat(dir + "/causative.format", dir + "/causative-" + subname + ".format", goi, ids);
+
+	}
+
+	private static final String GOI =
+		"CHEK1\n" +
+		"ATR\n" +
+		"ATM\n" +
+		"CHEK2\n" +
+		"TP53\n" +
+		"MYC\n" +
+		"MAX\n" +
+		"CDK1\n" +
+		"CDK2\n" +
+		"RB1\n" +
+		"RB2\n" +
+		"RBL1\n" +
+		"RBL2\n" +
+		"MDM2\n" +
+		"MDM4\n" +
+		"PPM1D\n" +
+		"CDKN2A\n" +
+		"HUWE1";
 }

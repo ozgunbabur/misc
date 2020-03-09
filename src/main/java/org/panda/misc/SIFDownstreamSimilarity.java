@@ -17,11 +17,24 @@ import java.util.Set;
  */
 public class SIFDownstreamSimilarity
 {
-	public static void main(String[] args) throws IOException
+	public static void main(String[] args)
 	{
-		String dir = "C:\\Users\\Owner\\Documents\\Analyses\\CPTAC-LSCC\\correlation-tumor\\";
-		generateDownstreamSimilarityGraph(dir + "causative-sig-neigh.sif", dir + "causative-sig-neigh-similarity.sif");
+		processRecursively("/Users/ozgun/Documents/Analyses/CPTAC-LSCC/clusters");
 	}
+
+	public static void processRecursively(String dir)
+	{
+		try
+		{
+			if (Files.exists(Paths.get(dir + "/causative-sig-neigh.sif")))
+			{
+				generateDownstreamSimilarityGraph(dir + "/causative-sig-neigh.sif", dir + "/causative-sig-neigh-similarity.sif");
+			}
+
+			Files.list(Paths.get(dir)).filter(Files::isDirectory).forEach(p -> processRecursively(p.toString()));
+		} catch (IOException e) {e.printStackTrace();}
+	}
+
 	public static void generateDownstreamSimilarityGraph(String sifFile, String outFile) throws IOException
 	{
 		DirectedGraph sif = new DirectedGraph("SIF", "directed");
@@ -39,7 +52,7 @@ public class SIFDownstreamSimilarity
 
 		outFile = outFile.substring(0, outFile.lastIndexOf(".")) + ".format";
 		BufferedWriter writer2 = Files.newBufferedWriter(Paths.get(outFile));
-		writer2.write("edge\tall-edges\twidth\t5\n");
+		writer2.write("edge\tall-edges\twidth\t2\n");
 
 		ValToColor vtc = new ValToColor(new double[]{0, 1}, new Color[]{new Color(200, 200, 200), Color.BLACK});
 
