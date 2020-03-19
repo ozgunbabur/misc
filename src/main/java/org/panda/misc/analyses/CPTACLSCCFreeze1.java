@@ -12,18 +12,17 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CPTACLSCC
+public class CPTACLSCCFreeze1
 {
-	public static final String DIR = "/home/ozgun/Analyses/CPTAC-LSCC/"; // OR
 //	public static final String DIR = "C:\\Users\\Owner\\Documents\\Analyses\\CPTAC-LSCC\\"; // Laptop
-//	public static final String DIR = "/Users/ozgun/Documents/Analyses/CPTAC-LSCC/"; // MA
+	public static final String DIR = "/Users/ozgun/Documents/Analyses/CPTAC-LSCC/"; // MA
 
 	public static void main(String[] args) throws IOException
 	{
-		convertData();
+//		convertData();
 //		printColNames();
 //		prepareCosmicGraph();
-//		generateSigNeighGraphs();
+		generateSigNeighGraphs();
 //		generatePartialSigGraph();
 //		separateEdgeTypes();
 //		compareClusters();
@@ -63,15 +62,26 @@ public class CPTACLSCC
 
 	private static Map<String, Map<String, Double>> processProteomicData() throws IOException
 	{
-		String inFile = DIR + "lscc-v2.0-proteome-ratio-norm-NArm-gene-level.gct";
+		String inFile = DIR + "lscc-v1.0-proteome-ratio-norm-NArm.gct";
 
 		Map<String, String[]> rowMap = new HashMap<>();
+		Map<String, Integer> specMap = new HashMap<>();
 
-		Files.lines(Paths.get(inFile)).skip(72).map(l -> l.split("\t")).forEach(t ->
+		Files.lines(Paths.get(inFile)).skip(59).map(l -> l.split("\t")).forEach(t ->
 		{
 			String sym = t[2];
-			rowMap.put(sym, t);
+			Integer spec = Integer.valueOf(t[4]);
+
+			if (!specMap.containsKey(sym) || specMap.get(sym) < spec)
+			{
+				specMap.put(sym, spec);
+				rowMap.put(sym, t);
+			}
 		});
+
+		System.out.println("specMap.size() = " + specMap.size());
+
+//		printIsoformFreq(rowMap);
 
 		Map<String, Map<String, Double>> map = new HashMap<>();
 
@@ -80,7 +90,7 @@ public class CPTACLSCC
 		rowMap.forEach((sym, t) ->
 		{
 			HashMap<String, Double> valMap = new HashMap<>();
-			for (int i = 18; i < header.length; i++)
+			for (int i = 16; i < header.length; i++)
 			{
 				valMap.put(header[i], t[i].equals("NA") ? Double.NaN : Double.valueOf(t[i]));
 			}
@@ -90,19 +100,35 @@ public class CPTACLSCC
 		return map;
 	}
 
+	private static void printIsoformFreq(Map<String, String[]> rowMap)
+	{
+		TermCounter tc = new TermCounter();
+		for (String[] t : rowMap.values())
+		{
+			int ind = t[1].indexOf(" isoform ");
+			if (ind > 0)
+			{
+				String num = t[1].substring(ind + 9, t[1].length());
+				tc.addTerm(num.split(" ")[0]);
+			}
+		}
+
+		tc.print();
+	}
+
 	private static Map<String[], Map<String, Double>> processPhosphoproteomicData() throws IOException
 	{
-		String inFile = DIR + "lscc-v2.0-phosphoproteome-ratio-norm-NArm.gct";
+		String inFile = DIR + "lscc-v1.0-phosphoproteome-ratio-norm-NArm.gct";
 
 		Map<String[], Map<String, Double>> map = new HashMap<>();
 
 		String[] header = Files.lines(Paths.get(inFile)).skip(2).findFirst().get().split("\t");
 
-		Files.lines(Paths.get(inFile)).skip(72).map(l -> l.split("\t")).forEach(t ->
+		Files.lines(Paths.get(inFile)).skip(59).map(l -> l.split("\t")).forEach(t ->
 		{
 			String sym = t[2];
 			List<String> sites = new ArrayList<>();
-			for (String s : t[12].split(" "))
+			for (String s : t[9].split(" "))
 			{
 				if (s.startsWith("S") || s.startsWith("T") || s.startsWith("Y"))
 				{
@@ -111,7 +137,7 @@ public class CPTACLSCC
 			}
 
 			HashMap<String, Double> valMap = new HashMap<>();
-			for (int i = 25; i < header.length; i++)
+			for (int i = 22; i < header.length; i++)
 			{
 				valMap.put(header[i], t[i].equals("NA") ? Double.NaN : Double.valueOf(t[i]));
 			}
@@ -128,24 +154,24 @@ public class CPTACLSCC
 
 	private static void printColNames() throws IOException
 	{
-		String inFile = DIR + "lscc-v2.0-proteome-ratio-norm-NArm-gene-level.gct";
+		String inFile = DIR + "lscc-v1.0-proteome-ratio-norm-NArm.gct";
 		String dir = null;
 		String[] header = Files.lines(Paths.get(inFile)).skip(2).findFirst().get().split("\t");
 		String[] tp53 = Files.lines(Paths.get(inFile)).filter(l -> l.startsWith("TP53.mutation.status")).findFirst().get().split("\t");
 		String[] type = Files.lines(Paths.get(inFile)).skip(8).findFirst().get().split("\t");
-		String[] cluster = Files.lines(Paths.get(inFile)).skip(48).findFirst().get().split("\t");
+//		String[] cluster = Files.lines(Paths.get(inFile)).skip(29).findFirst().get().split("\t");
 
 		// For correlation
-		for (int i = 18; i < header.length; i++)
-		{
-			if (type[i].equals("Tumor"))
-			{
-				System.out.println("value-column = " + header[i]);
-			}
-		}
+//		for (int i = 16; i < header.length; i++)
+//		{
+//			if (type[i].equals("Tumor"))
+//			{
+//				System.out.println("value-column = " + header[i]);
+//			}
+//		}
 
 		// Tumor vs normal
-//		for (int i = 18; i < header.length; i++)
+//		for (int i = 16; i < header.length; i++)
 //		{
 //			if (type[i].equals("Tumor"))
 //			{
@@ -157,6 +183,8 @@ public class CPTACLSCC
 //			}
 //		}
 
+		// Read clusters from additional file -- remove when clusters are added to the main file
+		String[] cluster = readClusters(header, DIR + "clin_anno_nmf-prot-psty-rna-cnv-v1.0.tsv");
 
 		// Print distribution of TP53 status to clusters
 //		TermCounter tc = new TermCounter();
@@ -225,7 +253,7 @@ public class CPTACLSCC
 			if (correspNormal[i] == null) correspNormal[i] = "X";
 		}
 
-//		generateBoxPlot("MCM3", inFile, cluster, correspNormal);
+		generateBoxPlot("MCM3", inFile, cluster, correspNormal);
 
 
 		// Clusters
