@@ -39,10 +39,10 @@ public class SMMARTPatient101
 //		extractTCGABRCASubtype();
 
 //		prepareCausalPathDirs();
-//		Map<String, List<Double>> map = loadDistributions(DIR + "TCGA-BRCA-L4.csv");
+//		Map<String, List<Double>> map = loadDistributions(BASE + "TCGA-BRCA-L4.csv");
 
 //		int limit = 224;
-//		BoxPlot.write(DIR + "plot.txt",
+//		BoxPlot.write(BASE + "plot.txt",
 //			map.keySet().stream().limit(limit).collect(Collectors.toList()).toArray(new String[limit]),
 //			map.keySet().stream().limit(limit).map(map::get).collect(Collectors.toList()).toArray(new List[limit]));
 

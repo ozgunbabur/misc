@@ -1,9 +1,7 @@
 package org.panda.misc.analyses;
 
-import org.panda.misc.CausalPathSubnetwork;
 import org.panda.utility.FileUtil;
 import org.panda.utility.SIFFileUtil;
-import org.panda.utility.StreamDirection;
 
 import java.io.IOException;
 import java.nio.file.Files;

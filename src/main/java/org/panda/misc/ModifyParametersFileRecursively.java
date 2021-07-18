@@ -135,11 +135,11 @@ public class ModifyParametersFileRecursively
 
 	public static void main(String[] args) throws IOException
 	{
-		String dir = "/home/ozgun/Analyses/CPTAC-GBM";
+		String dir = "/Users/ozgun/Documents/Analyses/CPTAC-PanCan/clusters/against-others-diffexp";
 
-//		replaceInFiles(dir, "fdr-threshold-for-data-significance = 0.05 phosphoprotein", "fdr-threshold-for-data-significance = 0.1 phosphoprotein");
+//		replaceInFiles(dir, "calculate-network-significance = true", "calculate-network-significance = true\nuse-network-significance-for-causal-reasoning = true");
 //		removeFromFiles(dir, "built-in-network-resource-selection = PC");
-		addToFiles(dir, "use-network-significance-for-causal-reasoning = true", 15);
+		addToFiles(dir, "show-all-genes-with-proteomic-data = true\n", 19);
 
 //		removeAllButParametersFileRecursive("/home/ozgun/Analyses/CausalPath-paper/TCGA-RPPA");
 	}

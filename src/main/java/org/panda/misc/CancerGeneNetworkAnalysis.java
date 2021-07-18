@@ -1,6 +1,5 @@
 package org.panda.misc;
 
-import com.github.jsonldjava.utils.JsonUtils;
 import org.biopax.paxtools.pattern.miner.SIFEnum;
 import org.panda.resource.CancerGeneCensus;
 import org.panda.resource.OncoKB;
@@ -226,7 +225,7 @@ public class CancerGeneNetworkAnalysis
 		}
 
 		BufferedWriter writer = Files.newBufferedWriter(Paths.get(sifNoExt + ".json"));
-		JsonUtils.writePrettyPrint(writer, json);
+//		JsonUtils.writePrettyPrint(writer, json);
 		writer.close();
 	}
 

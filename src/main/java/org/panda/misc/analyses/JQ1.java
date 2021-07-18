@@ -12,6 +12,6 @@ public class JQ1
 
 	public static void prepare()
 	{
-//		Files.lines(Paths.get(DIR + ""))
+//		Files.lines(Paths.get(BASE + ""))
 	}
 }

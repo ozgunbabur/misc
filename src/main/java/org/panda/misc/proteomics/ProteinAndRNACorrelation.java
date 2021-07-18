@@ -18,8 +18,8 @@ import java.util.*;
  */
 public class ProteinAndRNACorrelation
 {
-//	public static final String DIR = "/home/babur/Documents/RPPA/TCGA/PNNL/";
-//	public static final String PROTEOMIC_FILE = DIR + "PNLL-causality-formatted.txt";
+//	public static final String BASE = "/home/babur/Documents/RPPA/TCGA/PNNL/";
+//	public static final String PROTEOMIC_FILE = BASE + "PNLL-causality-formatted.txt";
 
 	public static final String DIR = "/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/";
 	public static final String PROTEOMIC_FILE = DIR + "CPTAC-TCGA-BRCA-data-77.txt";

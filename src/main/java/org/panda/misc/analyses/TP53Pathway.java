@@ -1,6 +1,6 @@
 package org.panda.misc.analyses;
 
-import org.panda.misc.CausalPathSubnetwork;
+import org.panda.misc.causalpath.CausalPathSubnetwork;
 import org.panda.misc.MutexReader;
 import org.panda.utility.FileUtil;
 import org.panda.utility.SIFFileUtil;
@@ -25,13 +25,14 @@ public class TP53Pathway
 	{
 //		generateMatrices();
 //		readResults();
-		printBasalBRCATP53ComparisonCP();
+//		printBasalBRCATP53ComparisonCP();
 //		cpResultSubgraph();
+		printSignificantSize();
 	}
 
 	public static void generateMatrices() throws IOException
 	{
-//		Set<String> cases = Files.lines(Paths.get(DIR + "pancan_samples.txt")).skip(1).map(l -> l.split("\t")[0]).collect(Collectors.toSet());
+//		Set<String> cases = Files.lines(Paths.get(BASE + "pancan_samples.txt")).skip(1).map(l -> l.split("\t")[0]).collect(Collectors.toSet());
 //		System.out.println("cases.size() = " + cases.size());
 
 		Map<String, Set<String>> studyMap = new HashMap<>();
@@ -123,6 +124,18 @@ public class TP53Pathway
 		Set<String> ids = CausalPathSubnetwork.getIDsAtTheNeighborhood(dir + "/results.txt", goi, StreamDirection.DOWNSTREAM);
 		System.out.println("ids.size() = " + ids.size());
 		CausalPathSubnetwork.writeSubsetFormat(dir + "/causative.format", dir + "/causative-" + subname + ".format", goi, ids);
+
+	}
+
+	public static void printSignificantSize() throws IOException
+	{
+		String dir = "/Users/ozgun/Documents/Analyses/CPTAC-LUAD/mutations/TP53/";
+		Set<String>[] sets = CausalPathSubnetwork.getSignificantGenes(dir + "significance-pvals.txt", 0.1);
+		System.out.println("Act = " + sets[0].size());
+		System.out.println("sets[0] = " + sets[0]);
+		System.out.println("inh = " + sets[1].size() + "\n");
+		System.out.println("sets[1] = " + sets[1]);
+
 
 	}
 

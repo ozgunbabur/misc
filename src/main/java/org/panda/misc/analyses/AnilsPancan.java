@@ -1,13 +1,11 @@
 package org.panda.misc.analyses;
 
+import org.panda.misc.causalpath.CausalPathSubnetwork;
 import org.panda.misc.MutexReader;
 import org.panda.resource.GO;
 import org.panda.resource.HGNC;
 import org.panda.resource.proteomics.RPPAIDMapper;
-import org.panda.utility.CollectionUtil;
-import org.panda.utility.FileUtil;
-import org.panda.utility.Memory;
-import org.panda.utility.ValToColor;
+import org.panda.utility.*;
 import org.panda.utility.statistics.FDR;
 import org.panda.utility.statistics.GeneSetEnrichment;
 
@@ -35,11 +33,13 @@ public class AnilsPancan
 //		generateComputeDirs();
 //		generateSIFFormatFileForTP53PancanMutex();
 
-		annotateGeneLisFor3GoTerms();
+//		annotateGeneLisFor3GoTerms();
 
 //		printRasFamilyEnrichment();
 
 //		convertDataCentricToGeneCentric();
+
+		generateApoptosisSubgraphs();
 	}
 
 	private static void generateSampelToTissueMapping() throws IOException
@@ -255,5 +255,34 @@ public class AnilsPancan
 
 		writer1.close();
 		writer2.close();
+	}
+
+	private static void generateApoptosisSubgraphs() throws IOException
+	{
+		String dir = "/Users/ozgun/Documents/Analyses/CPTAC-LUAD/mutations/TP53/";
+
+		Set<String> apopt = new HashSet<>(Arrays.asList(("BCL2\n" +
+			"MCL1\n" +
+			"BCL2L1\n" +
+			"BCL2L2\n" +
+			"BCL2A1\n" +
+			"BAD\n" +
+			"PMAIP1\n" +
+			"HRK\n" +
+			"BCL2L11\n" +
+			"BID\n" +
+			"BBC3\n" +
+			"BAX\n" +
+			"BAK1\n" +
+			"XIAP\n" +
+			"BIRC2\n" +
+			"BIRC3\n" +
+			"BIRC5\n" +
+			"DIABLO").split("\n")));
+
+//		CausalPathSubnetwork.writeGOINeighForCorrBased(dir, apopt, StreamDirection.BOTHSTREAM, "apoptosis");
+
+//		dir = "/Users/ozgun/Documents/Analyses/CPTAC-LUAD/tumor-vs-normal/";
+		CausalPathSubnetwork.writeGOINeighForCompBased(dir, apopt, StreamDirection.BOTHSTREAM, "causative-apoptosis-neigh");
 	}
 }

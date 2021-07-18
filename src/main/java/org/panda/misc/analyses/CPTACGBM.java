@@ -1,6 +1,6 @@
 package org.panda.misc.analyses;
 
-import org.panda.misc.CausalPathSubnetwork;
+import org.panda.misc.causalpath.CausalPathSubnetwork;
 import org.panda.utility.StreamDirection;
 
 import java.io.IOException;

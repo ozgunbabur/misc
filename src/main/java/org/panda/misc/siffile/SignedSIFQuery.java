@@ -7,7 +7,7 @@ import org.panda.resource.signednetwork.SignedType;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.graph.DirectedGraph;
-import org.panda.utility.graph.PhosphoGraph;
+import org.panda.utility.graph.SiteSpecificGraph;
 import org.panda.utility.statistics.FDR;
 
 import java.io.BufferedWriter;
@@ -44,9 +44,9 @@ public class SignedSIFQuery
 					writer.write(source + "\t" + type.getTag() + "\t" + target + "\t" +
 						graph.getMediatorsInString(source, target));
 
-					if (graph instanceof PhosphoGraph && ((PhosphoGraph) graph).hasSites(source, target))
+					if (graph instanceof SiteSpecificGraph && ((SiteSpecificGraph) graph).hasSites(source, target))
 					{
-						writer.write("\t" + CollectionUtil.merge(((PhosphoGraph) graph).getSites(source, target), ";"));
+						writer.write("\t" + CollectionUtil.merge(((SiteSpecificGraph) graph).getSites(source, target), ";"));
 					}
 
 					writer.write("\n");

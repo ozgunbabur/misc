@@ -6,7 +6,7 @@ import org.panda.resource.signednetwork.SignedType;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
 import org.panda.utility.graph.DirectedGraph;
-import org.panda.utility.graph.PhosphoGraph;
+import org.panda.utility.graph.SiteSpecificGraph;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,10 +50,10 @@ public class PCAndREACHComparison
 
 	public static void printVennWithSites()
 	{
-		PhosphoGraph pP = (PhosphoGraph) SignedPC.get().getGraph(SignedType.PHOSPHORYLATES);
-		PhosphoGraph dP = (PhosphoGraph) SignedPC.get().getGraph(SignedType.DEPHOSPHORYLATES);
-		PhosphoGraph pR = (PhosphoGraph) SignedREACH.get().getGraph(SignedType.PHOSPHORYLATES);
-		PhosphoGraph dR = (PhosphoGraph) SignedREACH.get().getGraph(SignedType.DEPHOSPHORYLATES);
+		SiteSpecificGraph pP = (SiteSpecificGraph) SignedPC.get().getGraph(SignedType.PHOSPHORYLATES);
+		SiteSpecificGraph dP = (SiteSpecificGraph) SignedPC.get().getGraph(SignedType.DEPHOSPHORYLATES);
+		SiteSpecificGraph pR = (SiteSpecificGraph) SignedREACH.get().getGraph(SignedType.PHOSPHORYLATES);
+		SiteSpecificGraph dR = (SiteSpecificGraph) SignedREACH.get().getGraph(SignedType.DEPHOSPHORYLATES);
 
 		Set<String> setPC = new HashSet<>();
 		collectSignaturesWithSite(pP, setPC);
@@ -78,7 +78,7 @@ public class PCAndREACHComparison
 		});
 	}
 
-	private static void collectSignaturesWithSite(PhosphoGraph graph, Set<String> set)
+	private static void collectSignaturesWithSite(SiteSpecificGraph graph, Set<String> set)
 	{
 		graph.getOneSideSymbols(true).forEach(s ->
 		{

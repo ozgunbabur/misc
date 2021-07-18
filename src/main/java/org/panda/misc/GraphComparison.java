@@ -32,7 +32,7 @@ public class GraphComparison
 		Set<String> phosNet = getRelsAsSet(PhosphoNetworks.get().getGraph());
 
 		// load IPTMNet
-		Set<String> iptmNet = getRelsAsSet(IPTMNet.get().getGraph());
+		Set<String> iptmNet = getRelsAsSet(IPTMNet.get().getGraph(SignedType.PHOSPHORYLATES));
 
 	}
 

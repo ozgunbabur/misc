@@ -1,6 +1,6 @@
 package org.panda.misc.analyses;
 
-import org.panda.misc.CausalPathSubnetwork;
+import org.panda.misc.causalpath.CausalPathSubnetwork;
 import org.panda.utility.*;
 
 import java.io.BufferedWriter;
@@ -181,10 +181,10 @@ public class CPTACLung
 			String testC = clusters.get(i);
 			String dir;
 
-//			dir = DIR + "clusters/against-others/" + testC + "/";
+//			dir = BASE + "clusters/against-others/" + testC + "/";
 //			Files.createDirectories(Paths.get(dir));
 //			BufferedWriter writer1 = Files.newBufferedWriter(Paths.get(dir + "parameters.txt"));
-//			Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer1));
+//			Files.lines(Paths.get(BASE + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer1));
 //			for (int j = 16; j < header.length; j++)
 //			{
 //				if (cluster[j].equals(testC)) FileUtil.lnwrite("test-value-column = " + header[j], writer1);
@@ -213,10 +213,10 @@ public class CPTACLung
 //			for (int j = i+1; j < clusters.size(); j++)
 //			{
 //				String ctrlC = clusters.get(j);
-//				dir = DIR + "clusters/pairs/" + testC + "-vs-" + ctrlC + "/";
+//				dir = BASE + "clusters/pairs/" + testC + "-vs-" + ctrlC + "/";
 //				Files.createDirectories(Paths.get(dir));
 //				BufferedWriter writer2 = Files.newBufferedWriter(Paths.get(dir + "parameters.txt"));
-//				Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer2));
+//				Files.lines(Paths.get(BASE + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer2));
 //				for (int k = 16; k < header.length; k++)
 //				{
 //					if (cluster[k].equals(testC)) FileUtil.lnwrite("test-value-column = " + header[k], writer2);
@@ -233,10 +233,10 @@ public class CPTACLung
 //		Files.lines(Paths.get(inFile)).map(l -> l.split("\t")).filter(t -> t[0].endsWith(".mutation.status")).forEach(t ->
 //		{
 //			String gene = t[0].substring(0, t[0].indexOf("."));
-//			String dir = DIR + "mutations/" + gene + "/";
+//			String dir = BASE + "mutations/" + gene + "/";
 //			FileUtil.mkdirs(dir);
 //			BufferedWriter writer = FileUtil.newBufferedWriter(dir + "parameters.txt");
-//			FileUtil.lines(DIR + "mutations/parameters.template.txt").forEach(l -> FileUtil.writeln(l, writer));
+//			FileUtil.lines(BASE + "mutations/parameters.template.txt").forEach(l -> FileUtil.writeln(l, writer));
 //
 //			FileUtil.lnwrite("gene-activity = " + gene + " " + (oncogenes.contains(gene) ? "a" : "i") + "\n", writer);
 //
@@ -253,10 +253,10 @@ public class CPTACLung
 
 	private static void prepareCosmicGraph() throws IOException
 	{
-//		CausalPathSubnetwork.writeGOINeighForCorrBased(DIR + "correlation-tumor", COSMIC, StreamDirection.UPSTREAM);
-//		CausalPathSubnetwork.writeGOINeighForCompBased(DIR + "tumor-vs-normal", COSMIC, StreamDirection.UPSTREAM);
+//		CausalPathSubnetwork.writeGOINeighForCorrBased(BASE + "correlation-tumor", COSMIC, StreamDirection.UPSTREAM);
+//		CausalPathSubnetwork.writeGOINeighForCompBased(BASE + "tumor-vs-normal", COSMIC, StreamDirection.UPSTREAM);
 
-//		CausalPathSubnetwork.writeGOINeighForCorrBased(DIR + "correlation-tumor", Collections.singleton("RUNX1"), StreamDirection.BOTHSTREAM);
+//		CausalPathSubnetwork.writeGOINeighForCorrBased(BASE + "correlation-tumor", Collections.singleton("RUNX1"), StreamDirection.BOTHSTREAM);
 
 		BufferedWriter writer = Files.newBufferedWriter(Paths.get(DIR + "cosmic.highlight"));
 		COSMIC.stream().sorted().forEach(g -> FileUtil.writeln("node\t" + g, writer));
@@ -265,7 +265,7 @@ public class CPTACLung
 
 	private static void generateSigNeighGraphs() throws IOException
 	{
-//		CausalPathSubnetwork.generateNeighborhoodSubgraphsForSignificantsRecursively(DIR + "correlation-tumor-rnaseq", 0.1);
+//		CausalPathSubnetwork.generateNeighborhoodSubgraphsForSignificantsRecursively(BASE + "correlation-tumor-rnaseq", 0.1);
 		CausalPathSubnetwork.writeSignifNeighForCorrBased(DIR + "correlation-tumor-rnaseq", StreamDirection.DOWNSTREAM);
 	}
 

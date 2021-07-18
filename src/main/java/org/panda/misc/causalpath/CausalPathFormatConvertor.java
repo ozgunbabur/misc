@@ -1,4 +1,4 @@
-package org.panda.misc;
+package org.panda.misc.causalpath;
 
 import org.panda.utility.FileUtil;
 

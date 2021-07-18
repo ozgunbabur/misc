@@ -1,6 +1,7 @@
 package org.panda.misc.proteomics;
 
 import org.panda.resource.siteeffect.SiteEffectCollective;
+import org.panda.resource.siteeffect.Feature;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.Tuple;
 import org.panda.utility.statistics.Correlation;
@@ -47,7 +48,7 @@ public class EffectOfActivityOnProtein
 			{
 				for (String site : t[2].split("\\|"))
 				{
-					Integer effect = sec.getEffect(gene, site);
+					Integer effect = sec.getEffect(gene, site, Feature.PHOSPHORYLATION);
 					if (effect == null) continue;
 
 					if (effect == 1)

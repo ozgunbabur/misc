@@ -119,7 +119,7 @@ public class CondorSubmit
 			A = SUB_DIR + "/script-" + h + (i++) + ".sub";
 			writer = new BufferedWriter(new FileWriter(A));
 			writer.write(SCRIPT
-				.replace("<DIR>", dir + " no-random-run")
+				.replace("<BASE>", dir + " no-random-run")
 				.replace("<CNT>", "1"));
 			writer.close();
 		}
@@ -129,7 +129,7 @@ public class CondorSubmit
 			B = SUB_DIR + "/script-" + h + (i++) + ".sub";
 			writer = new BufferedWriter(new FileWriter(B));
 			writer.write(SCRIPT
-				.replace("<DIR>", dir + " random")
+				.replace("<BASE>", dir + " random")
 				.replace("<CNT>", "" + (100 - randCnt)));
 			writer.close();
 		}
@@ -141,7 +141,7 @@ public class CondorSubmit
 		String C = SUB_DIR + "/script-" + h + (i++) + ".sub";
 		writer = new BufferedWriter(new FileWriter(C));
 		writer.write(SCRIPT
-			.replace("<DIR>", dir)
+			.replace("<BASE>", dir)
 			.replace("<CNT>", "1"));
 		writer.close();
 
@@ -180,7 +180,7 @@ public class CondorSubmit
 		String file = SUB_DIR + "/script-" + System.currentTimeMillis() + ".sub";
 		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		writer.write(SCRIPT
-			.replace("<DIR>", dir + " no-random-run")
+			.replace("<BASE>", dir + " no-random-run")
 			.replace("<CNT>", "1"));
 		writer.close();
 		Runtime.getRuntime().exec("condor_submit " + file);
@@ -231,7 +231,7 @@ public class CondorSubmit
 		"executable=/home/users/babur/jdk1.8.0_74/bin/java\n" +
 		"\n" +
 		"#Arguments to the program\n" +
-		"arguments=-jar /home/users/babur/Projects/mutex/target/mutex.jar <DIR>\n" +
+		"arguments=-jar /home/users/babur/Projects/mutex/target/mutex.jar <BASE>\n" +
 		"\n" +
 		"#stdout\n" +
 		"output=$(dir)stdout.sum\n" +

@@ -1,5 +1,6 @@
 package org.panda.misc.proteomics;
 
+import org.panda.utility.CollectionUtil;
 import org.panda.utility.FileUtil;
 import org.panda.utility.ValToColor;
 import org.panda.utility.statistics.Histogram;
@@ -22,9 +23,10 @@ public class SIFRecurrenceCalculator
 {
 	public static void main(String[] args) throws IOException
 	{
-		String base = "/home/ozgun/Analyses/CausalPath-paper/TCGA-RPPA/";
-		prepareIntegratedSIFs(base, base + "recurrent");
-		plotRecurrenceHistogram(base, base + "recurrent");
+		String base = "/Users/ozgun/Documents/Analyses/CausalPath-data/TCGA-RPPA/";
+//		prepareIntegratedSIFs(base, base + "recurrent");
+//		plotRecurrenceHistogram(base, base + "recurrent");
+		generateRecurrenceTable(base);
 	}
 
 	public static void prepareIntegratedSIFs(String inDir, String outDir) throws IOException
@@ -129,5 +131,43 @@ public class SIFRecurrenceCalculator
 		{
 			System.out.println((i + 1) + "\t" + hP[i] + "\t" + hE[i]);
 		}
+	}
+
+	private static void generateRecurrenceTable(String base)
+	{
+		Map<String, Set<String>> map = new HashMap<>();
+
+		for (File dir : new File(base).listFiles())
+		{
+			String filename = dir.getPath() + "/causative.sif";
+			if (dir.isDirectory() && new File(filename).exists())
+			{
+				String study = dir.getName();
+				FileUtil.lines(filename).map(l -> l.split("\t")).filter(t -> t.length > 2).forEach(t ->
+				{
+					String rel = t[0] + "\t" + t[1] + "\t" + t[2];
+					if (!map.containsKey(rel)) map.put(rel, new HashSet<>());
+					map.get(rel).add(study);
+				});
+			}
+		}
+
+		List<String> rels = map.keySet().stream().sorted((r1, r2) -> Integer.compare(map.get(r2).size(), map.get(r1).size())).collect(Collectors.toList());
+		Map<String, Set<String>> rev = new HashMap<>();
+		map.forEach((rel, sts) -> sts.forEach(s ->
+		{
+			if (!rev.containsKey(s)) rev.put(s, new HashSet<>());
+			rev.get(s).add(rel);
+		}));
+
+		List<String> studies = rev.keySet().stream().sorted((s1, s2) -> Integer.compare(rev.get(s2).size(), rev.get(s1).size())).collect(Collectors.toList());
+
+		System.out.print("Source\tRelation\tTarget");
+		studies.forEach(s -> System.out.print("\t" + s));
+		rels.forEach(r ->
+		{
+			System.out.print("\n" + r);
+			studies.forEach(s -> System.out.print("\t" + (map.get(r).contains(s) ? "X" : "")));
+		});
 	}
 }

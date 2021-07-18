@@ -1,4 +1,4 @@
-package org.panda.misc;
+package org.panda.misc.causalpath;
 
 import java.io.IOException;
 import java.nio.file.Files;

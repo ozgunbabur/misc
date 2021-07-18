@@ -1,7 +1,6 @@
 package org.panda.misc.analyses;
 
 import org.panda.causalpath.run.MergeResultsIntoSeriesView;
-import org.panda.misc.CausalPathSubnetwork;
 import org.panda.utility.FileUtil;
 import org.panda.utility.SIFFileUtil;
 import org.panda.utility.statistics.UniformityChecker;

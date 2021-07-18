@@ -12,7 +12,7 @@ public class SIFFileStatistics
 {
 	public static void main(String[] args) throws IOException
 	{
-		printStatesForFile("/home/ozgun/Analyses/CausalPath-paper/CPTAC-BRCA/correlation-based-expression-using-rnaseq/causative.sif");
+		printStatesForFile("/Users/ozgun/Documents/Analyses/CPTAC-LSCC-3.2/tumor-vs-normal/causative.sif");
 	}
 
 	public static void printStatesForFile(String file) throws IOException

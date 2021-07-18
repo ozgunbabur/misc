@@ -111,7 +111,7 @@ public class SMMARTPatient115
 		DirectedGraph graph = new DirectedGraph("State change", SIFEnum.CONTROLS_STATE_CHANGE_OF.getTag());
 		graph.merge((DirectedGraph) PathwayCommons.get().getGraph(SIFEnum.CONTROLS_STATE_CHANGE_OF));
 		graph.merge(PhosphoNetworks.get().getGraph());
-		graph.merge(IPTMNet.get().getGraph());
+		graph.merge(IPTMNet.get().getGraph(SignedType.PHOSPHORYLATES));
 		return graph;
 	}
 
@@ -140,8 +140,8 @@ public class SMMARTPatient115
 
 	private static GraphList loadTCGABRCACPNetwork()
 	{
-		PhosphoGraph posP = new PhosphoGraph("TCGA BRCA CP phosphorylation", SignedType.PHOSPHORYLATES.getTag());
-		PhosphoGraph negP = new PhosphoGraph("TCGA BRCA CP dephosphorylation", SignedType.DEPHOSPHORYLATES.getTag());
+		SiteSpecificGraph posP = new SiteSpecificGraph("TCGA BRCA CP phosphorylation", SignedType.PHOSPHORYLATES.getTag());
+		SiteSpecificGraph negP = new SiteSpecificGraph("TCGA BRCA CP dephosphorylation", SignedType.DEPHOSPHORYLATES.getTag());
 		DirectedGraph posE = new DirectedGraph("TCGA BRCA CP upregulates expression", SignedType.UPREGULATES_EXPRESSION.getTag());
 		DirectedGraph negE = new DirectedGraph("TCGA BRCA CP downregulates expression", SignedType.DOWNREGULATES_EXPRESSION.getTag());
 
@@ -166,8 +166,8 @@ public class SMMARTPatient115
 		throws IOException
 	{
 		GraphList gl = loadTCGABRCACPNetwork();
-		PhosphoGraph posP = (PhosphoGraph) gl.getGraph(SignedType.PHOSPHORYLATES.getTag());
-		PhosphoGraph negP = (PhosphoGraph) gl.getGraph(SignedType.DEPHOSPHORYLATES.getTag());
+		SiteSpecificGraph posP = (SiteSpecificGraph) gl.getGraph(SignedType.PHOSPHORYLATES.getTag());
+		SiteSpecificGraph negP = (SiteSpecificGraph) gl.getGraph(SignedType.DEPHOSPHORYLATES.getTag());
 		DirectedGraph posE = (DirectedGraph) gl.getGraph(SignedType.UPREGULATES_EXPRESSION.getTag());
 		DirectedGraph negE = (DirectedGraph) gl.getGraph(SignedType.DOWNREGULATES_EXPRESSION.getTag());
 

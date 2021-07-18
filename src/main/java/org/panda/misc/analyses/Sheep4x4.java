@@ -193,8 +193,8 @@ public class Sheep4x4
 //		Map<String, Double>[] protEnrichVals = PCPathway.get().getEnrichmentPvals(prots, null, 5, 300);
 //		Map<String, Double>[] allEnrichVals = PCPathway.get().getEnrichmentPvals(mols, null, 5, 300);
 
-//		if (!mets.isEmpty()) PCPathway.get().writeEnrichmentResults(mets, 3, 300, DIR + comparison + "-met-enrichment.txt");
-//		if (!prots.isEmpty()) PCPathway.get().writeEnrichmentResults(prots, 3, 300, DIR + comparison + "-prot-enrichment.txt");
+//		if (!mets.isEmpty()) PCPathway.get().writeEnrichmentResults(mets, 3, 300, BASE + comparison + "-met-enrichment.txt");
+//		if (!prots.isEmpty()) PCPathway.get().writeEnrichmentResults(prots, 3, 300, BASE + comparison + "-prot-enrichment.txt");
 		if (!mols.isEmpty())
 		{
 			PCPathway.get().writeEnrichmentResults(mols, 3, 300, DIR + comparison + "-enrichment.txt");

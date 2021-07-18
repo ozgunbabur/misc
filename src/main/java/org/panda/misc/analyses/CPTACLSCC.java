@@ -1,11 +1,12 @@
 package org.panda.misc.analyses;
 
-import org.panda.misc.CausalPathSubnetwork;
+import org.panda.misc.causalpath.CausalPathSubnetwork;
 import org.panda.utility.*;
 import org.panda.utility.statistics.BoxPlot;
 import org.panda.utility.statistics.TTest;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,15 +15,16 @@ import java.util.stream.Collectors;
 
 public class CPTACLSCC
 {
-//	public static final String DIR = "C:\\Users\\Owner\\Documents\\Analyses\\CPTAC-LSCC\\"; // Laptop
-	public static final String DIR = "/Users/ozgun/Documents/Analyses/CPTAC-LSCC/"; // MA
+//	public static final String BASE = "C:\\Users\\Owner\\Documents\\Analyses\\CPTAC-LSCC\\"; // Laptop
+	public static final String DIR = "/Users/ozgun/Documents/Analyses/CPTAC-LSCC-3.2/"; // MA
 
 	public static void main(String[] args) throws IOException
 	{
 //		convertData();
 //		printColNames();
 //		prepareCosmicGraph();
-		generateSigNeighGraphs();
+//		prepareGOIGraph();
+//		generateSigNeighGraphs();
 //		generatePartialSigGraph();
 //		separateEdgeTypes();
 //		compareClusters();
@@ -30,6 +32,8 @@ public class CPTACLSCC
 //		normalTumorImmuneComparison();
 //		separateTurmors();
 //		printImmunePCADimComparisons();
+
+		exploreResultOverlaps();
 	}
 
 	private static void convertData() throws IOException
@@ -62,12 +66,12 @@ public class CPTACLSCC
 
 	private static Map<String, Map<String, Double>> processProteomicData() throws IOException
 	{
-		String inFile = DIR + "lscc-v1.0-proteome-ratio-norm-NArm.gct";
+		String inFile = DIR + "lscc-v3.2-proteome-ratio-norm-NArm.gct";
 
 		Map<String, String[]> rowMap = new HashMap<>();
 		Map<String, Integer> specMap = new HashMap<>();
 
-		Files.lines(Paths.get(inFile)).skip(59).map(l -> l.split("\t")).forEach(t ->
+		Files.lines(Paths.get(inFile)).skip(83).map(l -> l.split("\t")).forEach(t ->
 		{
 			String sym = t[2];
 			Integer spec = Integer.valueOf(t[4]);
@@ -90,7 +94,7 @@ public class CPTACLSCC
 		rowMap.forEach((sym, t) ->
 		{
 			HashMap<String, Double> valMap = new HashMap<>();
-			for (int i = 16; i < header.length; i++)
+			for (int i = 18; i < header.length; i++)
 			{
 				valMap.put(header[i], t[i].equals("NA") ? Double.NaN : Double.valueOf(t[i]));
 			}
@@ -118,17 +122,17 @@ public class CPTACLSCC
 
 	private static Map<String[], Map<String, Double>> processPhosphoproteomicData() throws IOException
 	{
-		String inFile = DIR + "lscc-v1.0-phosphoproteome-ratio-norm-NArm.gct";
+		String inFile = DIR + "lscc-v3.2-phosphoproteome-ratio-norm-NArm.gct";
 
 		Map<String[], Map<String, Double>> map = new HashMap<>();
 
 		String[] header = Files.lines(Paths.get(inFile)).skip(2).findFirst().get().split("\t");
 
-		Files.lines(Paths.get(inFile)).skip(59).map(l -> l.split("\t")).forEach(t ->
+		Files.lines(Paths.get(inFile)).skip(83).map(l -> l.split("\t")).forEach(t ->
 		{
 			String sym = t[2];
 			List<String> sites = new ArrayList<>();
-			for (String s : t[9].split(" "))
+			for (String s : t[12].split(" "))
 			{
 				if (s.startsWith("S") || s.startsWith("T") || s.startsWith("Y"))
 				{
@@ -137,7 +141,7 @@ public class CPTACLSCC
 			}
 
 			HashMap<String, Double> valMap = new HashMap<>();
-			for (int i = 22; i < header.length; i++)
+			for (int i = 25; i < header.length; i++)
 			{
 				valMap.put(header[i], t[i].equals("NA") ? Double.NaN : Double.valueOf(t[i]));
 			}
@@ -154,15 +158,15 @@ public class CPTACLSCC
 
 	private static void printColNames() throws IOException
 	{
-		String inFile = DIR + "lscc-v1.0-proteome-ratio-norm-NArm.gct";
+		String inFile = DIR + "lscc-v3.2-proteome-ratio-norm-NArm.gct";
 		String dir = null;
 		String[] header = Files.lines(Paths.get(inFile)).skip(2).findFirst().get().split("\t");
 		String[] tp53 = Files.lines(Paths.get(inFile)).filter(l -> l.startsWith("TP53.mutation.status")).findFirst().get().split("\t");
 		String[] type = Files.lines(Paths.get(inFile)).skip(8).findFirst().get().split("\t");
-//		String[] cluster = Files.lines(Paths.get(inFile)).skip(29).findFirst().get().split("\t");
+		String[] cluster = Files.lines(Paths.get(inFile)).skip(59).findFirst().get().split("\t");
 
 		// For correlation
-//		for (int i = 16; i < header.length; i++)
+//		for (int i = 18; i < header.length; i++)
 //		{
 //			if (type[i].equals("Tumor"))
 //			{
@@ -170,21 +174,18 @@ public class CPTACLSCC
 //			}
 //		}
 
+
 		// Tumor vs normal
-//		for (int i = 16; i < header.length; i++)
+//		Set<String> normals = Arrays.stream(header).filter(s -> s.endsWith(".N")).collect(Collectors.toSet());
+//
+//		for (int i = 18; i < header.length; i++)
 //		{
-//			if (type[i].equals("Tumor"))
+//			if (type[i].equals("Tumor") && normals.contains(header[i] + ".N"))
 //			{
 //				System.out.println("test-value-column = " + header[i]);
-//			}
-//			else if (type[i].equals("NAT"))
-//			{
-//				System.out.println("control-value-column = " + header[i]);
+//				System.out.println("control-value-column = " + header[i] + ".N");
 //			}
 //		}
-
-		// Read clusters from additional file -- remove when clusters are added to the main file
-		String[] cluster = readClusters(header, DIR + "clin_anno_nmf-prot-psty-rna-cnv-v1.0.tsv");
 
 		// Print distribution of TP53 status to clusters
 //		TermCounter tc = new TermCounter();
@@ -197,10 +198,10 @@ public class CPTACLSCC
 //		}
 //		tc.print();
 
-//		dir = DIR + "clusters/one-off/P53-intact-vs-normals/";
+//		dir = BASE + "clusters/one-off/P53-intact-vs-normals/";
 //		Files.createDirectories(Paths.get(dir));
 //		BufferedWriter writer5 = Files.newBufferedWriter(Paths.get(dir + "parameters.txt"));
-//		Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).map(l -> l.endsWith("-mean") ? l + "-paired" : l).forEach(l -> FileUtil.writeln(l, writer5));
+//		Files.lines(Paths.get(BASE + "clusters/parameters.template.txt")).map(l -> l.endsWith("-mean") ? l + "-paired" : l).forEach(l -> FileUtil.writeln(l, writer5));
 //		for (int i = 16; i < header.length; i++)
 //		{
 //			if (type[i].equals("NAT"))
@@ -216,10 +217,10 @@ public class CPTACLSCC
 //		}
 //		writer5.close();
 //
-//		dir = DIR + "clusters/one-off/P53-mut-in-C3/";
+//		dir = BASE + "clusters/one-off/P53-mut-in-C3/";
 //		Files.createDirectories(Paths.get(dir));
 //		BufferedWriter writer6 = Files.newBufferedWriter(Paths.get(dir + "parameters.txt"));
-//		Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer6));
+//		Files.lines(Paths.get(BASE + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer6));
 //		for (int i = 16; i < header.length; i++)
 //		{
 //			if (type[i].equals("Tumor") && cluster[i].equals("C3"))
@@ -244,33 +245,33 @@ public class CPTACLSCC
 				if (ind > 0)
 				{
 					String c = cluster[ind];
-					if (c.startsWith("C"))
+					if (!c.equalsIgnoreCase("NA"))
 					{
 						correspNormal[i] = c;
 					}
 				}
 			}
-			if (correspNormal[i] == null) correspNormal[i] = "X";
+			if (correspNormal[i] == null) correspNormal[i] = "NA";
 		}
 
-		generateBoxPlot("MCM3", inFile, cluster, correspNormal);
+//		generateBoxPlot("MCM3", inFile, cluster, correspNormal);
 
 
 		// Clusters
 
-		List<String> clusters = Arrays.stream(cluster).filter(c -> c.startsWith("C")).distinct().sorted().collect(Collectors.toList());
-		for (int i = 0; i < clusters.size(); i++)
-		{
-			String testC = clusters.get(i);
-
+//		List<String> clusters = Arrays.stream(cluster).filter(c -> !c.equalsIgnoreCase("NA") && !c.equals("NMF.cluster")).distinct().sorted().collect(Collectors.toList());
+//		for (int i = 0; i < clusters.size(); i++)
+//		{
+//			String testC = clusters.get(i);
+//
 //			dir = DIR + "clusters/against-others/" + testC + "/";
 //			Files.createDirectories(Paths.get(dir));
 //			BufferedWriter writer1 = Files.newBufferedWriter(Paths.get(dir + "parameters.txt"));
 //			Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer1));
-//			for (int j = 16; j < header.length; j++)
+//			for (int j = 18; j < header.length; j++)
 //			{
 //				if (cluster[j].equals(testC)) FileUtil.lnwrite("test-value-column = " + header[j], writer1);
-//				else if (cluster[j].startsWith("C")) FileUtil.lnwrite("control-value-column = " + header[j], writer1);
+//				else if (!cluster[j].equalsIgnoreCase("NA")) FileUtil.lnwrite("control-value-column = " + header[j], writer1);
 //			}
 //			writer1.close();
 //
@@ -280,11 +281,11 @@ public class CPTACLSCC
 //			Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).map(l -> l.endsWith("-mean") ? l + "-paired" : l).forEach(l -> FileUtil.writeln(l, writer3));
 //			List<String> tumors = new ArrayList<>();
 //			List<String> normals = new ArrayList<>();
-//			for (int j = 16; j < header.length; j++)
+//			for (int j = 18; j < header.length; j++)
 //			{
 //				if (cluster[j].equals(testC)) tumors.add(header[j]);
 //			}
-//			for (int j = 16; j < header.length; j++)
+//			for (int j = 18; j < header.length; j++)
 //			{
 //				if (header[j].endsWith(".N") && tumors.contains(header[j].substring(0, header[j].length() - 2))) normals.add(header[j]);
 //			}
@@ -294,59 +295,59 @@ public class CPTACLSCC
 //			tumors.stream().sorted().forEach(s -> FileUtil.lnwrite("test-value-column = " + s, writer3));
 //			normals.stream().sorted().forEach(s -> FileUtil.lnwrite("control-value-column = " + s, writer3));
 //			writer3.close();
-
-			for (int j = i+1; j < clusters.size(); j++)
-			{
-				String ctrlC = clusters.get(j);
-
+//
+//			for (int j = i+1; j < clusters.size(); j++)
+//			{
+//				String ctrlC = clusters.get(j);
+//
 //				dir = DIR + "clusters/pairs/" + testC + "-vs-" + ctrlC + "/";
 //				Files.createDirectories(Paths.get(dir));
 //				BufferedWriter writer2 = Files.newBufferedWriter(Paths.get(dir + "parameters.txt"));
 //				Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer2));
-//				for (int k = 16; k < header.length; k++)
+//				for (int k = 18; k < header.length; k++)
 //				{
 //					if (cluster[k].equals(testC)) FileUtil.lnwrite("test-value-column = " + header[k], writer2);
 //					else if (cluster[k].equals(ctrlC)) FileUtil.lnwrite("control-value-column = " + header[k], writer2);
 //				}
 //				writer2.close();
-
+//
 //				dir = DIR + "clusters/normal-pairs/" + testC + "-vs-" + ctrlC + "/";
 //				Files.createDirectories(Paths.get(dir));
 //				BufferedWriter writer4 = Files.newBufferedWriter(Paths.get(dir + "parameters.txt"));
 //				Files.lines(Paths.get(DIR + "clusters/parameters.template.txt")).forEach(l -> FileUtil.writeln(l, writer4));
-//				for (int k = 16; k < header.length; k++)
+//				for (int k = 18; k < header.length; k++)
 //				{
 //					if (correspNormal[k].equals(testC)) FileUtil.lnwrite("test-value-column = " + header[k], writer4);
 //					else if (correspNormal[k].equals(ctrlC)) FileUtil.lnwrite("control-value-column = " + header[k], writer4);
 //				}
 //				writer4.close();
-			}
-		}
+//			}
+//		}
 
 		// Mutations
 
-//		Set<String> oncogenes = new HashSet<>(Arrays.asList("PIK3CA", "KRAS", "NOTCH1", "HRAS", "EGFR", "IL21R", "EGFL6",
-//			"LMO2", "BIRC6", "BRAF", "ARAF", "ERBB2"));
-//
-//		Files.lines(Paths.get(inFile)).map(l -> l.split("\t")).filter(t -> t[0].endsWith(".mutation.status")).forEach(t ->
-//		{
-//			String gene = t[0].substring(0, t[0].indexOf("."));
-//			String dir = DIR + "mutations/" + gene + "/";
-//			FileUtil.mkdirs(dir);
-//			BufferedWriter writer = FileUtil.newBufferedWriter(dir + "parameters.txt");
-//			FileUtil.lines(DIR + "mutations/parameters.template.txt").forEach(l -> FileUtil.writeln(l, writer));
-//
-//			FileUtil.lnwrite("gene-activity = " + gene + " " + (oncogenes.contains(gene) ? "a" : "i") + "\n", writer);
-//
-//			for (int i = 16; i < header.length; i++)
-//			{
-//				if (!type[i].equals("Tumor")) continue;
-//
-//				if (t[i].equals("1")) FileUtil.lnwrite("test-value-column = " + header[i], writer);
-//				else if (t[i].equals("0")) FileUtil.lnwrite("control-value-column = " + header[i], writer);
-//			}
-//			FileUtil.closeWriter(writer);
-//		});
+		Set<String> oncogenes = new HashSet<>(Arrays.asList("PIK3CA", "KRAS", "NOTCH1", "HRAS", "EGFR", "IL21R", "EGFL6",
+			"LMO2", "BIRC6", "BRAF", "ARAF", "ERBB2"));
+
+		Files.lines(Paths.get(inFile)).map(l -> l.split("\t")).filter(t -> t[0].endsWith(".mutation.status")).forEach(t ->
+		{
+			String gene = t[0].substring(0, t[0].indexOf("."));
+			String directory = DIR + "mutations/" + gene + "/";
+			FileUtil.mkdirs(directory);
+			BufferedWriter writer = FileUtil.newBufferedWriter(directory + "parameters.txt");
+			FileUtil.lines(DIR + "mutations/parameters.template.txt").forEach(l -> FileUtil.writeln(l, writer));
+
+			FileUtil.lnwrite("gene-activity = " + gene + " " + (oncogenes.contains(gene) ? "a" : "i") + "\n", writer);
+
+			for (int i = 18; i < header.length; i++)
+			{
+				if (!type[i].equals("Tumor")) continue;
+
+				if (t[i].equals("1")) FileUtil.lnwrite("test-value-column = " + header[i], writer);
+				else if (t[i].equals("0")) FileUtil.lnwrite("control-value-column = " + header[i], writer);
+			}
+			FileUtil.closeWriter(writer);
+		});
 	}
 
 	private static void generateBoxPlot(String id, String origDataSheet, String[] cluster, String[] correspNormal) throws IOException
@@ -407,19 +408,25 @@ public class CPTACLSCC
 		CausalPathSubnetwork.writeGOINeighForCorrBased(DIR + "correlation-tumor", COSMIC, StreamDirection.UPSTREAM);
 		CausalPathSubnetwork.writeGOINeighForCompBased(DIR + "tumor-vs-normal", COSMIC, StreamDirection.UPSTREAM);
 
-//		CausalPathSubnetwork.writeGOINeighForCorrBased(DIR + "correlation-tumor", Collections.singleton("RUNX1"), StreamDirection.BOTHSTREAM);
+//		CausalPathSubnetwork.writeGOINeighForCorrBased(BASE + "correlation-tumor", Collections.singleton("RUNX1"), StreamDirection.BOTHSTREAM);
 
 		BufferedWriter writer = Files.newBufferedWriter(Paths.get(DIR + "cosmic.highlight"));
 		COSMIC.stream().sorted().forEach(g -> FileUtil.writeln("node\t" + g, writer));
 		writer.close();
 	}
 
+
+	private static void prepareGOIGraph() throws IOException
+	{
+		CausalPathSubnetwork.writeGOINeighForCorrBased(DIR + "clusters/against-others/C3", new HashSet<String>(Arrays.asList(new String[]{"KEAP1", "CUL3", "NFE2L2"})), StreamDirection.BOTHSTREAM, "KEAP1-CUL3-NFE2L2");
+	}
+
 	private static void generateSigNeighGraphs() throws IOException
 	{
 		CausalPathSubnetwork.generateNeighborhoodSubgraphsForSignificantsRecursively(DIR + "immune-PCA-axis", 0.1);
-//		CausalPathSubnetwork.writeSignifNeighForCompBased(DIR + "clusters/one-off/P53-intact-vs-normals", StreamDirection.DOWNSTREAM, 0.1);
+//		CausalPathSubnetwork.writeSignifNeighForCompBased(BASE + "clusters/one-off/P53-intact-vs-normals", StreamDirection.DOWNSTREAM, 0.1);
 
-//		CausalPathSubnetwork.writeSignifNeighForCorrBased(DIR + "correlation-tumor", StreamDirection.DOWNSTREAM);
+//		CausalPathSubnetwork.writeSignifNeighForCorrBased(BASE + "correlation-tumor", StreamDirection.DOWNSTREAM);
 	}
 
 	private static void generatePartialSigGraph() throws IOException
@@ -584,88 +591,41 @@ public class CPTACLSCC
 			.map(t -> t[0]).collect(Collectors.toSet());
 	}
 
-
-	//--- Immune signature stuffff---------------
-
-	private static void normalTumorImmuneComparison() throws IOException
+	private static void exploreResultOverlaps() throws IOException
 	{
-		String immFile = DIR + "LSCC_RNAbased_Immune_Signatures.txt";
-		String[] header = Files.lines(Paths.get(immFile)).findFirst().get().split("\t");
-		Files.lines(Paths.get(immFile)).skip(1).map(l -> l.split("\t")).forEach(t ->
-		{
-			String id = t[0];
-			List<Double> tList = new ArrayList<>();
-			List<Double> nList = new ArrayList<>();
-			for (int i = 1; i < t.length; i++)
-			{
-				if (header[i].endsWith("_N")) nList.add(Double.valueOf(t[i]));
-				else tList.add(Double.valueOf(t[i]));
-			}
-			Tuple tup = TTest.test(ArrayUtil.convertToBasicDoubleArray(nList), ArrayUtil.convertToBasicDoubleArray(tList));
-			System.out.println(id + "\t" + tup.v + "\t" + tup.p);
-		});
-	}
+		String base = DIR + "clusters/against-normals/";
 
-	private static void separateTurmors() throws IOException
-	{
-		String annotFile = DIR + "clin_anno_nmf-prot-psty-rna-cnv-v1.0.tsv";
-		String[] headerClus = Files.lines(Paths.get(annotFile)).findFirst().get().split("\t");
-		int idInd = ArrayUtil.lastIndexOf(headerClus, "id");
-		int cInd = ArrayUtil.lastIndexOf(headerClus, "NMF.consensus");
-		Map<String, String> map = Files.lines(Paths.get(annotFile)).skip(1).map(l -> l.split("\t"))
-			.collect(Collectors.toMap(t -> t[idInd], t -> t[cInd]));
+		File[] d = new File(base).listFiles();
 
-		String immFile = DIR + "LSCC_RNAbased_Immune_Signatures.tsv";
-		BufferedWriter writer = Files.newBufferedWriter(Paths.get(DIR + "LSCC_RNAbased_Immune_Signatures-Tumors.tsv"));
-		String[] header = Files.lines(Paths.get(immFile)).findFirst().get().split("\t");
-		for (int i = 1; i < header.length; i++)
-		{
-			header[i] = header[i].replaceAll("_", ".");
-			if (!header[i].endsWith(".N")) FileUtil.tab_write(header[i], writer);
-		}
-		writer.write("\nCluster");
-		for (int i = 1; i < header.length; i++)
-		{
-			if (!header[i].endsWith(".N")) FileUtil.tab_write("C" + map.get(header[i]), writer);
-		}
-		Files.lines(Paths.get(immFile)).skip(1).map(l -> l.split("\t")).forEach(t ->
-		{
-			String id = t[0];
-			FileUtil.lnwrite(id, writer);
-			for (int i = 1; i < header.length; i++)
-			{
-				if (!header[i].endsWith(".N")) FileUtil.tab_write(t[i], writer);
-			}
-		});
+		List<String> dirs = Arrays.stream(d).map(f -> f.toString().substring(f.toString().lastIndexOf("/") + 1)).filter(s -> !s.startsWith(".")).collect(Collectors.toList());
+
+		List<Set<String>> relsList = dirs.stream().map(dir -> readSIFRelations(base + dir)).collect(Collectors.toList());
+
+		CollectionUtil.printNameMapping(dirs.toArray(new String[0]));
+		CollectionUtil.printVennCounts(relsList.toArray(new Collection[0]));
+
+		Set<String> intersect = new HashSet<>(relsList.get(0));
+		relsList.forEach(l -> intersect.retainAll(l));
+
+		BufferedWriter writer = Files.newBufferedWriter(Paths.get(DIR + "temp/common.sif"));
+		intersect.forEach(rel -> FileUtil.writeln(rel, writer));
 		writer.close();
+
 	}
 
-	private static void printImmunePCADimComparisons() throws IOException
+	private static Set<String> readSIFRelations(String dir)
 	{
-		Map<String, Double> map = Files.lines(Paths.get(DIR + "immune-tumor-PCA-scores.csv")).skip(1)
-			.map(l -> l.split(",")).collect(Collectors.toMap(t -> t[0].replaceAll("\"", ""), t -> Double.valueOf(t[3])));
-
-		printTertileSamplesForComparison(map);
-	}
-
-	private static void printTertileSamplesForComparison(Map<String, Double> vals)
-	{
-		List<Double> list = new ArrayList<>(vals.values());
-		list.sort(Double::compare);
-
-		int size  = (int) Math.ceil(list.size() / 3D);
-
-		double lowT = list.get(size - 1);
-		double highT = list.get(list.size() - size);
-
-		vals.forEach((s, v) ->
+		try
 		{
-			if (v <= lowT) System.out.println("control-value-column = " + s);
-			else if (v >= highT) System.out.println("test-value-column = " + s);
-		});
+			return Files.lines(Paths.get(dir + "/causative.sif")).map(l -> l.split("\t"))
+				.filter(t -> t.length > 2).map(t -> t[0] + "\t" + t[1] + "\t" + t[2] + (t.length > 4 ? "\t\t" + t[4] : "")).collect(Collectors.toSet());
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+			return null;
+		}
 	}
-
-	//--- End of immune signature stuffff---------------
 
 	final static String DEFINERS = "NELFB\n" +
 		"SUPT16H\n" +

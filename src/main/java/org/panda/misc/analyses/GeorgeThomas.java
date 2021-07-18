@@ -7,6 +7,7 @@ import org.panda.resource.siteeffect.PhosphoSitePlus;
 import org.panda.resource.network.PathwayCommons;
 import org.panda.resource.network.SignedPC;
 import org.panda.resource.signednetwork.SignedType;
+import org.panda.resource.siteeffect.Feature;
 import org.panda.resource.tcga.ProteomicsFileRow;
 import org.panda.utility.ArrayUtil;
 import org.panda.utility.CollectionUtil;
@@ -57,7 +58,7 @@ public class GeorgeThomas
 		// Fill-in missing effect from PhosphoSitePlus
 		PhosphoSitePlus.get().fillInMissingEffect(rppas, 10);
 
-		ProteomicsFileRow mtor = new ProteomicsFileRow("MTOR-inactivated", null, Arrays.asList("MTOR"), null);
+		ProteomicsFileRow mtor = new ProteomicsFileRow("MTOR-inactivated", null, Arrays.asList("MTOR"), null, Feature.PHOSPHORYLATION);
 		mtor.makeActivityNode(true);
 		rppas.add(mtor);
 
@@ -169,7 +170,7 @@ public class GeorgeThomas
 			vals = new double[]{foldCh};
 		}
 
-		return new ProteomicsFileRow(generateID(geneList, siteMap), vals, geneList, siteMap);
+		return new ProteomicsFileRow(generateID(geneList, siteMap), vals, geneList, siteMap, Feature.PHOSPHORYLATION);
 	}
 
 	private static String generateID(List<String> genes, Map<String, List<String>> sites)
@@ -210,7 +211,7 @@ public class GeorgeThomas
 
 	private static Set<ProteomicsFileRow> readProteomicsFileRow(boolean achn) throws FileNotFoundException
 	{
-		List<ProteomicsFileRow> datas = ProteomicsFileReader.readAnnotation(base + "abdata-chibe.txt", "ID1", "Symbols", "Sites", "Effect");
+		List<ProteomicsFileRow> datas = ProteomicsFileReader.readAnnotation(base + "abdata-chibe.txt", "ID1", "Symbols", "Sites", null,"Effect");
 
 		Map<String, ProteomicsFileRow> map = new HashMap<>();
 		for (ProteomicsFileRow data : datas)

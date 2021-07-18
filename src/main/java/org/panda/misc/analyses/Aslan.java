@@ -1,11 +1,13 @@
 package org.panda.misc.analyses;
 
+import org.panda.misc.causalpath.CausalPathSubnetwork;
 import org.panda.resource.HGNC;
 import org.panda.resource.UniProtSequence;
 import org.panda.resource.signednetwork.SignedType;
 import org.panda.resource.siteeffect.SiteEffectCollective;
+import org.panda.resource.siteeffect.Feature;
 import org.panda.utility.*;
-import org.panda.utility.graph.PhosphoGraph;
+import org.panda.utility.graph.SiteSpecificGraph;
 import org.panda.utility.statistics.Histogram;
 import org.panda.utility.statistics.Overlap;
 
@@ -50,9 +52,10 @@ public class Aslan
 //		printStatisticsFromDataFile();
 //		printStatisticsFromResultsFiles();
 
-		readValidationResults();
+//		readValidationResults();
 //		compareFigureSIFToNewMergedOne();
 
+		getJAK2Neighborhood();
 	}
 
 	static void convertPhosphoproteomics() throws IOException
@@ -518,7 +521,7 @@ public class Aslan
 					Integer effect = null;
 					for (String site : sites.get(i))
 					{
-						effect = sec.getEffect(syms.get(i), site);
+						effect = sec.getEffect(syms.get(i), site, Feature.PHOSPHORYLATION);
 						if (effect != null && effect != 0) break;
 					}
 					sb.append("\nnode\t").append(syms.get(i)).append("\trppasite\t").append(id).append("|p|").append(vtc.getColorInString(fc)).append("|").append(effect != null && effect == 1 ? "0 180 20" : effect != null && effect == -1 ? "180 0 20" : "0 0 0").append("|").append(fc);
@@ -742,7 +745,7 @@ public class Aslan
 		Integer effect = null;
 		for (String site : sites.split("\\|"))
 		{
-			Integer e = sec.getEffect(gene, site);
+			Integer e = sec.getEffect(gene, site, Feature.PHOSPHORYLATION);
 			if (e != null && e != 0)
 			{
 				effect = e;
@@ -982,24 +985,28 @@ public class Aslan
 
 		// read change directions
 		Map<String, Map<String, Boolean>> dirMap = new HashMap<>();
+		Map<String, Map<String, Double>> dirValMap = new HashMap<>();
 		Files.lines(Paths.get(blotFile)).skip(31).map(l -> l.split("\t")).forEach(t ->
 		{
 			Map<String, Boolean> map = new HashMap<>();
+			Map<String, Double> mapDif = new HashMap<>();
 			double ref = Double.valueOf(t[3]);
 			for (int i = 4; i < t.length; i++)
 			{
 				map.put(header[i], Double.valueOf(t[i]) < ref);
+				mapDif.put(header[i], Double.valueOf(t[i]) - ref);
 			}
 			dirMap.put(t[0], map);
+			dirValMap.put(t[0], mapDif);
 		});
 
 		String resDir = dir + "merged/";
 
 		// load result phosphorylation graph
-		PhosphoGraph resGraph = new PhosphoGraph("Results", SignedType.PHOSPHORYLATES.getTag());
+		SiteSpecificGraph resGraph = new SiteSpecificGraph("Results", SignedType.PHOSPHORYLATES.getTag());
 		resGraph.load(resDir + "merged-relax1aa.sif", Collections.singleton(resGraph.getEdgeType()));
 
-		PhosphoGraph graph = new PhosphoGraph("Validation", SignedType.PHOSPHORYLATES.getTag());
+		SiteSpecificGraph graph = new SiteSpecificGraph("Validation", SignedType.PHOSPHORYLATES.getTag());
 
 		String colorValidAndFound = "0 150 0";
 		String colorValidAndIndirect = "80 80 200";
@@ -1010,13 +1017,16 @@ public class Aslan
 		writer.write("node\tall-nodes\tcolor\t255 255 255\n");
 		writer.write("node\tall-nodes\tbordercolor\t0 0 0\n");
 
-		int[] cnt = new int[4];
+		int[] cnt = new int[5];
 		int vfInd = 0;
 		int viInd = 1;
 		int nvbfInd = 2;
 		int vbnfInd = 3;
+		int nvbiInd = 4;
 		Set<String> allEffs = new HashSet<>();
 		Set<String> allTrgs = new HashSet<>();
+
+		System.out.println("-Math.log(0.1) = " + -Math.log(0.1));
 
 		// read significant changes and generate graph
 		Files.lines(Paths.get(blotFile)).skip(1).limit(11).map(l -> l.split("\t")).forEach(t ->
@@ -1028,8 +1038,9 @@ public class Aslan
 			for (int i = 4; i < t.length; i++)
 			{
 				if (t[i].startsWith("<")) t[i] = t[i].substring(1);
-				double val = Double.valueOf(t[i]);
-				boolean valid = val <= fdrThr && dirMap.get(t[0]).get(header[i]);
+				double pval = Double.valueOf(t[i]);
+				boolean valid = pval <= fdrThr && dirMap.get(t[0]).get(header[i]);
+				double chVal = dirValMap.get(t[0]).get(header[i]);
 
 				Set<String> sources = drugTargetMap.get(header[i]);
 
@@ -1050,7 +1061,8 @@ public class Aslan
 					{
 						graph.putRelation(eff, gene, "", CollectionUtil.merge(sites, ";"));
 
-						FileUtil.write("edge\t" + eff + " " + SignedType.PHOSPHORYLATES.getTag() + " " + gene + "\tcolor\t", writer);
+						String edge = eff + " " + SignedType.PHOSPHORYLATES.getTag() + " " + gene;
+						FileUtil.write("edge\t" + edge + "\tcolor\t", writer);
 
 						if (valid)
 						{
@@ -1058,6 +1070,8 @@ public class Aslan
 							{
 								FileUtil.writeln(colorValidAndFound, writer);
 								cnt[vfInd]++;
+
+								System.out.println(edge + "\t" + chVal + "\t" + -Math.log(pval));
 							}
 							else if (indirectSubset.contains(eff))
 							{
@@ -1074,7 +1088,13 @@ public class Aslan
 						{
 							FileUtil.writeln(colorNotValidButFound, writer);
 							cnt[nvbfInd]++;
+
+							System.out.println(edge + "\t" + chVal + "\t" + -Math.log(pval));
 						}
+					}
+					else if (!valid && indirectSubset.contains(eff))
+					{
+						cnt[nvbiInd]++;
 					}
 				}
 			}
@@ -1088,6 +1108,7 @@ public class Aslan
 		System.out.println("cnt[viInd] = " + cnt[viInd]);
 		System.out.println("cnt[vbnfInd] = " + cnt[vbnfInd]);
 		System.out.println("cnt[nvbfInd] = " + cnt[nvbfInd]);
+		System.out.println("cnt[nvbiInd] = " + cnt[nvbiInd]);
 
 		System.out.println("allEffs.size() = " + allEffs.size());
 		System.out.println("allTrgs.size() = " + allTrgs.size());
@@ -1101,7 +1122,7 @@ public class Aslan
 		System.out.println("pBiasToFound = " + pBiasToFound);
 	}
 
-	private static Set<String> getSourcesThatAreUpstreamOf(String target, PhosphoGraph graph, Set<String> candidates, int limit)
+	private static Set<String> getSourcesThatAreUpstreamOf(String target, SiteSpecificGraph graph, Set<String> candidates, int limit)
 	{
 		Set<String> results = new HashSet<>();
 
@@ -1118,5 +1139,11 @@ public class Aslan
 		Set<String> inPaper = SIFFileUtil.getRelationsAsString("/Users/ozgun/Downloads/sum-relax1aa8.sif");
 		Set<String> inResults = SIFFileUtil.getRelationsAsString("/Users/ozgun/Documents/Analyses/platelet/merged/merged-relax1aa.sif");
 		CollectionUtil.printVennSets(10, inPaper, inResults);
+	}
+
+	private static void getJAK2Neighborhood() throws IOException
+	{
+		String dir = "/Users/ozgun/Documents/Analyses/platelet/merged/";
+		SIFFileUtil.writeNeighborhood(dir + "merged-relax1aa.sif", Arrays.asList("JAK2", "STAT5A", "STAT5B", "DAPP1"), dir + "JAK2.sif");
 	}
 }

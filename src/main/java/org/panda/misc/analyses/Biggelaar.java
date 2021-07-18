@@ -171,7 +171,7 @@ public class Biggelaar
 	public static void test() throws IOException
 	{
 //		Set<String> items = new HashSet<>();
-//		Files.lines(Paths.get(DIR + "table1.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
+//		Files.lines(Paths.get(BASE + "table1.txt")).skip(1).map(l -> l.split("\t")).forEach(t ->
 //		{
 //			String pep = t[7];
 //
