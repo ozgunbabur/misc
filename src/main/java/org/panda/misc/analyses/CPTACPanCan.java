@@ -29,6 +29,8 @@ public class CPTACPanCan
 	public static final String MAP_FILE = DATA_BASE + "var_map_full.tsv";
 	public static final String DIFFEXP_FILE = DATA_BASE + "full_diffexp_results_signatures.tsv";
 	public static final String DENDRO_FILE = DATA_BASE + "full_de_cohort_cov_dendrogram.tsv";
+	public static final String MISSING_SITES_FILE = DATA_BASE + "full_de_cohort_cov_with_missing_sites.tsv";
+	public static final String MUTLIST_FILE = DATA_BASE + "full_de_cohort_cov_for_mutation_list.tsv";
 
 //	public static final String PHOSPHO_FILE = DATA_BASE + "phospho_ardnmf_X.tsv";
 //	public static final String ACETYL_FILE = DATA_BASE + "acetyl_ardnmf_X.tsv";
@@ -52,7 +54,7 @@ public class CPTACPanCan
 	public static void main(String[] args) throws IOException
 	{
 //		convertData();
-//		convertDiffExpData();
+		convertDiffExpData();
 
 //		convertSingledOutDiffExpData(DATA_BASE + "lowtreg_157", "lowtreg");
 //		convertSingledOutDiffExpData(DATA_BASE + "high_vs_low_treg", "high_vs_low_treg");
@@ -660,9 +662,13 @@ public class CPTACPanCan
 //		String inFile = DIFFEXP_FILE;
 //		String outFile = OUT_BASE + "data-signatures.tsv";
 
-		String base = OUT_BASE + "clusters/dendrograms/";
-		String inFile = DENDRO_FILE;
-		String outFile = OUT_BASE + "data-dendrogram.tsv";
+//		String base = OUT_BASE + "clusters/dendrograms/";
+//		String inFile = DENDRO_FILE;
+//		String outFile = OUT_BASE + "data-dendrogram.tsv";
+
+		String base = OUT_BASE + "clusters/missing-sites/";
+		String inFile = MISSING_SITES_FILE;
+		String outFile = OUT_BASE + "data-missing-sites.tsv";
 
 		new File(base).mkdirs();
 
@@ -740,8 +746,9 @@ public class CPTACPanCan
 			idToVals.get(id).put(t[clusterInd], p);
 		});
 
-		List<String> clusters = idToVals.values().iterator().next().keySet().stream()
-			.sorted(Comparator.comparing(Double::valueOf)).collect(Collectors.toList());
+		List<String> clusters = idToVals.keySet().stream().map(idToVals::get).map(Map::keySet).flatMap(Collection::stream).distinct().collect(Collectors.toList());
+//		clusters.sort(String::compareTo);
+		clusters.sort(Comparator.comparing(Double::valueOf));
 
 		BufferedWriter writer = FileUtil.newBufferedWriter(outFile);
 		writer.write("ID\tSymbols\tSites\tFeature\tEffect");
@@ -926,11 +933,13 @@ public class CPTACPanCan
 	private static void prepareAnalysisFoldersAgainstOthersDiffExp() throws IOException
 	{
 //		String base = OUT_BASE + "clusters/signatures/";
-		String base = OUT_BASE + "clusters/dendrogram/";
+//		String base = OUT_BASE + "clusters/dendrogram/";
+		String base = OUT_BASE + "clusters/missing-sites/";
 		new File(base).mkdirs();
 
 //		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-signatures.tsv").findFirst().get().split("\t"));
-		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-dendrogram.tsv").findFirst().get().split("\t"));
+//		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-dendrogram.tsv").findFirst().get().split("\t"));
+		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-missing-sites.tsv").findFirst().get().split("\t"));
 		clusters = clusters.subList(5, clusters.size());
 
 		for (int i = 0; i < clusters.size(); i++)
@@ -1242,7 +1251,8 @@ public class CPTACPanCan
 	}
 
 //	public static final String PARAM_START = "proteomics-values-file = ../../../../data-signatures.tsv\n" +
-	public static final String PARAM_START = "proteomics-values-file = ../../../../data-dendrogram.tsv\n" +
+//	public static final String PARAM_START = "proteomics-values-file = ../../../../data-dendrogram.tsv\n" +
+	public static final String PARAM_START = "proteomics-values-file = ../../../../data-missing-sites.tsv\n" +
 		"id-column = ID\n" +
 		"symbols-column = Symbols\n" +
 		"sites-column = Sites\n" +
