@@ -31,6 +31,8 @@ public class CPTACPanCan
 	public static final String DENDRO_FILE = DATA_BASE + "full_de_cohort_cov_dendrogram.tsv";
 	public static final String MISSING_SITES_FILE = DATA_BASE + "full_de_cohort_cov_with_missing_sites.tsv";
 	public static final String MUTLIST_FILE = DATA_BASE + "full_de_cohort_cov_for_mutation_list.tsv";
+	public static final String TREG_FILE = DATA_BASE + "full_de_cohort_cov_treg.tsv";
+	public static final String HRD_FILE = DATA_BASE + "full_diffexp_results_HRD.tsv";
 
 //	public static final String PHOSPHO_FILE = DATA_BASE + "phospho_ardnmf_X.tsv";
 //	public static final String ACETYL_FILE = DATA_BASE + "acetyl_ardnmf_X.tsv";
@@ -666,9 +668,17 @@ public class CPTACPanCan
 //		String inFile = DENDRO_FILE;
 //		String outFile = OUT_BASE + "data-dendrogram.tsv";
 
-		String base = OUT_BASE + "clusters/missing-sites/";
-		String inFile = MISSING_SITES_FILE;
-		String outFile = OUT_BASE + "data-missing-sites.tsv";
+//		String base = OUT_BASE + "clusters/missing-sites/";
+//		String inFile = MISSING_SITES_FILE;
+//		String outFile = OUT_BASE + "data-missing-sites.tsv";
+
+//		String base = OUT_BASE + "treg/";
+//		String inFile = TREG_FILE;
+//		String outFile = OUT_BASE + "data-treg.tsv";
+
+		String base = OUT_BASE + "hrd/";
+		String inFile = HRD_FILE;
+		String outFile = OUT_BASE + "data-hrd.tsv";
 
 		new File(base).mkdirs();
 
@@ -688,6 +698,8 @@ public class CPTACPanCan
 
 		FileUtil.lines(inFile).skip(1).map(l -> l.split("\t")).forEach(t ->
 		{
+			if (t[pInd].isEmpty()) return;
+
 			String id = t[idInd];
 
 			String[] props = idToProps.get(id);
@@ -747,8 +759,8 @@ public class CPTACPanCan
 		});
 
 		List<String> clusters = idToVals.keySet().stream().map(idToVals::get).map(Map::keySet).flatMap(Collection::stream).distinct().collect(Collectors.toList());
-//		clusters.sort(String::compareTo);
-		clusters.sort(Comparator.comparing(Double::valueOf));
+		clusters.sort(String::compareTo);
+//		clusters.sort(Comparator.comparing(Double::valueOf));
 
 		BufferedWriter writer = FileUtil.newBufferedWriter(outFile);
 		writer.write("ID\tSymbols\tSites\tFeature\tEffect");
@@ -934,12 +946,16 @@ public class CPTACPanCan
 	{
 //		String base = OUT_BASE + "clusters/signatures/";
 //		String base = OUT_BASE + "clusters/dendrogram/";
-		String base = OUT_BASE + "clusters/missing-sites/";
+//		String base = OUT_BASE + "clusters/missing-sites/";
+//		String base = OUT_BASE + "treg/";
+		String base = OUT_BASE + "hrd/";
 		new File(base).mkdirs();
 
 //		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-signatures.tsv").findFirst().get().split("\t"));
 //		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-dendrogram.tsv").findFirst().get().split("\t"));
-		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-missing-sites.tsv").findFirst().get().split("\t"));
+//		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-missing-sites.tsv").findFirst().get().split("\t"));
+//		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-treg.tsv").findFirst().get().split("\t"));
+		List<String> clusters = Arrays.asList(FileUtil.lines(OUT_BASE + "data-hrd.tsv").findFirst().get().split("\t"));
 		clusters = clusters.subList(5, clusters.size());
 
 		for (int i = 0; i < clusters.size(); i++)
@@ -1252,7 +1268,9 @@ public class CPTACPanCan
 
 //	public static final String PARAM_START = "proteomics-values-file = ../../../../data-signatures.tsv\n" +
 //	public static final String PARAM_START = "proteomics-values-file = ../../../../data-dendrogram.tsv\n" +
-	public static final String PARAM_START = "proteomics-values-file = ../../../../data-missing-sites.tsv\n" +
+//	public static final String PARAM_START = "proteomics-values-file = ../../../../data-missing-sites.tsv\n" +
+//	public static final String PARAM_START = "proteomics-values-file = ../../../data-treg.tsv\n" +
+	public static final String PARAM_START = "proteomics-values-file = ../../../data-hrd.tsv\n" +
 		"id-column = ID\n" +
 		"symbols-column = Symbols\n" +
 		"sites-column = Sites\n" +

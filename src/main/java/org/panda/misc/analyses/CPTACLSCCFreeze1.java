@@ -1,6 +1,6 @@
 package org.panda.misc.analyses;
 
-import org.panda.misc.CausalPathSubnetwork;
+import org.panda.misc.causalpath.CausalPathSubnetwork;
 import org.panda.utility.*;
 import org.panda.utility.statistics.BoxPlot;
 import org.panda.utility.statistics.TTest;
